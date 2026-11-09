@@ -48,4 +48,6 @@ export interface Message {
   questionRating?: boolean;
   // Pergunta, feedback ou dica (isStudyMessage): decide o auto scroll.
   isStudy?: boolean;
+  // Pergunta de estudo: sempre inicia um bloco no auto scroll.
+  isQuestion?: boolean;
 }

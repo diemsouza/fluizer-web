@@ -10,9 +10,10 @@ import {
 import {
   pickRecorderMimeType,
   preloadVoiceRemux,
-  recorderBitrate,
 } from "@/src/lib/voice-recording";
 import {
+  VOICE_AUDIO_CONSTRAINTS,
+  VOICE_BITRATE,
   VOICE_MAX_SEC,
   VOICE_MIN_MS,
   VOICE_WARN_SEC,
@@ -47,12 +48,6 @@ const LEVEL_GAIN = 5;
 // Rede de seguranca: se o MediaRecorder nunca disparar "stop", a UI nao pode
 // ficar presa no estado gravando.
 const STOP_FALLBACK_MS = 1500;
-const AUDIO_CONSTRAINTS: MediaTrackConstraints = {
-  channelCount: 1,
-  echoCancellation: true,
-  noiseSuppression: true,
-  autoGainControl: true,
-};
 
 const silentLevels = (): number[] => new Array<number>(WAVEFORM_BARS).fill(0);
 
@@ -207,7 +202,7 @@ export function useVoiceRecorder({
       streamRef.current = stream;
       const recorder = new MediaRecorder(stream, {
         mimeType,
-        audioBitsPerSecond: recorderBitrate(mimeType),
+        audioBitsPerSecond: VOICE_BITRATE,
       });
       chunksRef.current = [];
       recorder.ondataavailable = (event) => {
@@ -267,7 +262,7 @@ export function useVoiceRecorder({
     setRecordingAudioSession(true);
     const ctx = unlockSharedAudioContext();
     navigator.mediaDevices
-      .getUserMedia({ audio: AUDIO_CONSTRAINTS })
+      .getUserMedia({ audio: VOICE_AUDIO_CONSTRAINTS })
       .then((stream) => {
         if (!isMountedRef.current || statusRef.current !== "requesting") {
           stream.getTracks().forEach((track) => track.stop());

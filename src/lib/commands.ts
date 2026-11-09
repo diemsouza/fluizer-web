@@ -166,6 +166,7 @@ export function isAutoCompletable(command: Command): boolean {
 type CommandMatch = { command: Command; rank: number };
 
 export function searchAutoCompleteCommands(query: string): Command[] {
+  const hasSlash = query.trim().startsWith("/");
   const normalized = normalize(query.trim().replace(/^\//, ""));
   const candidates = COMMANDS.filter(isAutoCompletable);
   if (!normalized) return candidates;
@@ -176,6 +177,7 @@ export function searchAutoCompleteCommands(query: string): Command[] {
     const aliases = command.aliases.map(normalize);
     let rank: number;
     if (display.startsWith(normalized)) rank = 0;
+    else if (!hasSlash) continue;
     else if (aliases.some((a) => a.startsWith(normalized))) rank = 1;
     else if (display.includes(normalized)) rank = 2;
     else if (aliases.some((a) => a.includes(normalized))) rank = 3;

@@ -1,11 +1,22 @@
-// h-7 = altura exata da bolha (py-3 + ponto de 4px): o slot fica sempre no
-// fim da lista e a altura do conteudo nao muda quando o digitando liga/desliga.
-export const TYPING_SLOT_PX = 28;
+import type { ReactNode } from "react";
 
-export function TypingIndicatorSlot({ isVisible }: { isVisible: boolean }) {
+// h-9 = altura do botao Continuar: o slot fica sempre no fim da lista, com as
+// acoes ou o digitando no mesmo lugar, e a altura do conteudo nao muda.
+export const TYPING_SLOT_PX = 36;
+
+export function TypingIndicatorSlot({
+  isVisible,
+  children,
+}: {
+  isVisible: boolean;
+  children?: ReactNode;
+}) {
   return (
-    <div className="h-7 shrink-0" aria-hidden={!isVisible}>
-      {isVisible && <TypingIndicatorBubble />}
+    <div
+      className="flex min-h-9 shrink-0 flex-col justify-center"
+      aria-hidden={!isVisible && !children}
+    >
+      {children ?? (isVisible && <TypingIndicatorBubble />)}
     </div>
   );
 }

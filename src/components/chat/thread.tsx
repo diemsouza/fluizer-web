@@ -56,6 +56,7 @@ type ChatThreadProps = {
   pendingReviewCount?: number;
   onPracticeClick?: () => void;
   actions?: ReactNode;
+  messageFooter?: (message: Message) => ReactNode;
 };
 
 export const ChatThread = forwardRef<ComposerHandle, ChatThreadProps>(
@@ -80,6 +81,7 @@ export const ChatThread = forwardRef<ComposerHandle, ChatThreadProps>(
       pendingReviewCount = 0,
       onPracticeClick,
       actions,
+      messageFooter,
     },
     ref,
   ) {
@@ -191,7 +193,9 @@ export const ChatThread = forwardRef<ComposerHandle, ChatThreadProps>(
         scrollToBottom("smooth");
         return;
       }
-      const startsStudy = Boolean(tail.isStudy) && !prevTail?.isStudy;
+      const startsStudy =
+        Boolean(tail.isStudy) &&
+        (!prevTail?.isStudy || Boolean(tail.isQuestion));
       const shouldScroll = startsStudy || isAutoScrollOnRef.current;
       if (startsStudy) isAutoScrollOnRef.current = false;
       if (shouldScroll && !isUserScrolledUpRef.current) {
@@ -299,12 +303,14 @@ export const ChatThread = forwardRef<ComposerHandle, ChatThreadProps>(
                       onRetry={onRetry}
                       onAudioPlay={onAudioPlay}
                       onButtonClick={onButtonClick}
+                      footer={messageFooter?.(message)}
                     />
                   </Fragment>
                 );
               })}
-              {actions}
-              <TypingIndicatorSlot isVisible={Boolean(isTyping)} />
+              <TypingIndicatorSlot isVisible={Boolean(isTyping)}>
+                {actions}
+              </TypingIndicatorSlot>
             </div>
           </div>
           {!isThreadReady && (

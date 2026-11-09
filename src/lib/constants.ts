@@ -153,6 +153,15 @@ export const VOICE_MAX_SEC = 30;
 export const VOICE_WARN_SEC = 20;
 export const VOICE_MIN_MS = 1000;
 export const VOICE_MAX_BYTES = 1024 * 1024;
+// Nada toca durante a gravacao, entao o cancelamento de eco so degrada (no iOS
+// liga o modo de chamada). channelCount e ideal: o Safari pode ignorar.
+export const VOICE_AUDIO_CONSTRAINTS: MediaTrackConstraints = {
+  echoCancellation: false,
+  noiseSuppression: true,
+  autoGainControl: true,
+  channelCount: 1,
+};
+export const VOICE_BITRATE = 64_000;
 // So formatos que o player toca: Ogg/Opus (nativo ou remuxado do WebM) e
 // AAC em MP4 (Safari antes do 18.4).
 export const VOICE_ACCEPTED_CONTENT_TYPES = ["audio/ogg", "audio/mp4"];
@@ -484,3 +493,5 @@ export const PHONE_NATIONAL_FORMAT_OVERRIDES: Partial<
 > = {
   BR: { 10: { pattern: /^(\d{2})(\d{4})(\d{4})$/, format: "($1) $2-$3" } },
 };
+
+export const HOW_IT_WORKS_AUTOSCROLL_MS = 7000;

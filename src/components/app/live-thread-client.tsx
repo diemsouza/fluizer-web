@@ -18,7 +18,8 @@ import { getJson, postForm, postJson } from "@/src/lib/api-client";
 import { useRealtimeMessages } from "@/src/hooks/use-realtime-messages";
 import { useIsMobile } from "@/src/hooks/use-is-mobile";
 import { setupAudioUnlock } from "@/src/lib/audio-unlock";
-import { delay, isAppUrl } from "@/src/lib/utils";
+import type { PracticeActions } from "@/src/core/practice-pill";
+import { cn, delay, isAppUrl } from "@/src/lib/utils";
 import { loadImageSize } from "@/src/lib/image-size";
 import { buildVoiceNoteFile } from "@/src/lib/voice-recording";
 import { usePracticePill } from "./practice-pill-provider";
@@ -27,6 +28,8 @@ import { useNewActivity } from "./new-activity-provider";
 import { useProfileLevel } from "./profile-level-provider";
 import { useSupportFlow } from "./support-flow-provider";
 import { PracticeActionsRow } from "./practice-actions-row";
+import { QuestionRatingBadge } from "@/src/components/chat/question-rating-badge";
+import { QuestionRatingControls } from "./question-rating-controls";
 import {
   REPLY_WAIT_TIMEOUT_MS,
   RETRY_NEW_ACTIVITY_BUTTON_ID,
@@ -203,6 +206,7 @@ export function LiveThreadClient({
     registerSender,
     refresh: refreshPracticePill,
     practiceActions,
+    isContinuing,
     finishTurn,
   } = usePracticePill();
   const { openReminder } = useReminderFlow();
@@ -258,6 +262,11 @@ export function LiveThreadClient({
     lastRealtimeEventAtRef.current = Date.now();
     setIsTurnActive(true);
   }, []);
+
+  const handleContinue = useCallback(() => {
+    setShowPendingReview(false);
+    beginTurn();
+  }, [beginTurn]);
 
   useEffect(() => stopTyping, [stopTyping]);
 
@@ -733,17 +742,50 @@ export function LiveThreadClient({
     return () => registerSender(null);
   }, [registerSender]);
 
-  // Enquanto a linha de acoes esta aberta, o voto aparece nela, nao na mensagem.
-  const openRatingMessageId = practiceActions?.messageId;
-  const displayedMessages = useMemo(
+  const visibleMessages = useMemo(
     () =>
       applyOptimisticSelections(
         messages.filter((m) => m.command === undefined),
         optimisticSelections,
-      ).map((m) =>
-        m.id === openRatingMessageId ? { ...m, questionRating: undefined } : m,
       ),
-    [messages, optimisticSelections, openRatingMessageId],
+    [messages, optimisticSelections],
+  );
+  const tailId = visibleMessages.at(-1)?.id;
+
+  // Ao tocar em Continuar o estado do servidor zera antes da pergunta chegar:
+  // segura o ultimo estado ate entrar mensagem nova, para o chat nao mudar de
+  // altura nesse intervalo.
+  const lastActionsRef = useRef<{
+    actions: PracticeActions;
+    tailId: string | undefined;
+  } | null>(null);
+  if (practiceActions) {
+    lastActionsRef.current = { actions: practiceActions, tailId };
+  }
+  const snapshot = lastActionsRef.current;
+  const isHeld =
+    !practiceActions &&
+    (isContinuing || isTurnActive) &&
+    snapshot !== null &&
+    snapshot.tailId === tailId;
+  const openActions = practiceActions ?? (isHeld ? snapshot?.actions : null);
+  const isRatingBesideContinue =
+    openActions?.canContinue === true && openActions.messageId === tailId;
+  const isOpenActionsHidden = isContinuing || isHeld;
+
+  // Enquanto a linha de acoes esta aberta, o voto aparece nela, nao na mensagem.
+  const displayedMessages = useMemo(
+    () =>
+      visibleMessages.map((m) =>
+        m.id === openActions?.messageId
+          ? { ...m, questionRating: undefined }
+          : m,
+      ),
+    [visibleMessages, openActions?.messageId],
+  );
+
+  const isRowVisible = Boolean(
+    practiceActions?.canContinue && !isContinuing && !isWaitingForResponse,
   );
 
   return (
@@ -767,10 +809,30 @@ export function LiveThreadClient({
       pendingReviewCount={pendingReviewCount}
       onPracticeClick={() => handleSend("/praticar")}
       actions={
-        practiceActions && !isWaitingForResponse ? (
-          <PracticeActionsRow onContinue={beginTurn} />
+        isRowVisible ? (
+          <PracticeActionsRow
+            onContinue={handleContinue}
+            isLastMessageFeedback={isRatingBesideContinue}
+          />
         ) : null
       }
+      messageFooter={(m) => {
+        if (m.id !== openActions?.messageId || isRatingBesideContinue) {
+          return null;
+        }
+        if (openActions.rating !== null) {
+          return (
+            <div className={cn(isOpenActionsHidden && "invisible")}>
+              <QuestionRatingBadge rating={openActions.rating} />
+            </div>
+          );
+        }
+        return isOpenActionsHidden ? (
+          <div className="h-8" aria-hidden />
+        ) : (
+          <QuestionRatingControls />
+        );
+      }}
     />
   );
 }

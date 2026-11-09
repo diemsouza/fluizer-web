@@ -2,13 +2,14 @@
 
 import { useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
+import { ChevronLeft, ChevronRight } from "lucide-react";
+import { HOW_IT_WORKS_AUTOSCROLL_MS } from "@/src/lib/constants";
+import { useCarouselAutoscroll } from "@/src/hooks/use-carousel-autoscroll";
 import { cn } from "@/src/lib/utils";
 import {
   Carousel,
   CarouselContent,
   CarouselItem,
-  CarouselNext,
-  CarouselPrevious,
   type CarouselApi,
 } from "@/src/components/ui/carousel";
 
@@ -21,14 +22,24 @@ export default function HowItWorksSection() {
   const [api, setApi] = useState<CarouselApi>();
   const [selectedIndex, setSelectedIndex] = useState(0);
 
+  const { sectionRef, onUserHover } = useCarouselAutoscroll({
+    api,
+    intervalMs: HOW_IT_WORKS_AUTOSCROLL_MS,
+  });
+
   useEffect(() => {
     if (!api) return;
-    setSelectedIndex(api.selectedScrollSnap());
-    api.on("select", () => setSelectedIndex(api.selectedScrollSnap()));
+    const syncIndex = (): void => setSelectedIndex(api.selectedScrollSnap());
+    syncIndex();
+    api.on("select", syncIndex);
+    return () => {
+      api.off("select", syncIndex);
+    };
   }, [api]);
 
   return (
     <section
+      ref={sectionRef}
       id="how-it-works"
       className="section-dark py-[120px] px-6 md:py-[80px] scroll-mt-24"
     >
@@ -45,7 +56,8 @@ export default function HowItWorksSection() {
         <Carousel
           opts={{ loop: true }}
           setApi={setApi}
-          className="px-4 sm:px-12"
+          className="px-4"
+          onMouseEnter={onUserHover}
         >
           <CarouselContent>
             {Array.from({ length: BLOCK_COUNT }, (_, i) => (
@@ -77,25 +89,41 @@ export default function HowItWorksSection() {
               </CarouselItem>
             ))}
           </CarouselContent>
-          <CarouselPrevious />
-          <CarouselNext />
         </Carousel>
 
-        <div className="flex justify-center gap-2 mt-8">
-          {Array.from({ length: BLOCK_COUNT }, (_, i) => (
-            <button
-              key={i}
-              type="button"
-              aria-label={`Slide ${i + 1}`}
-              onClick={() => api?.scrollTo(i)}
-              className={cn(
-                "h-2 rounded-full transition-all",
-                i === selectedIndex
-                  ? "w-6 bg-primary"
-                  : "w-2 bg-muted-foreground/30",
-              )}
-            />
-          ))}
+        <div className="flex items-center justify-center gap-4 mt-8">
+          <button
+            type="button"
+            aria-label={t("previous")}
+            onClick={() => api?.scrollPrev()}
+            className="touch-target text-muted-foreground hover:text-foreground transition-colors"
+          >
+            <ChevronLeft className="h-5 w-5" />
+          </button>
+          <div className="flex gap-2">
+            {Array.from({ length: BLOCK_COUNT }, (_, i) => (
+              <button
+                key={i}
+                type="button"
+                aria-label={t("go_to_slide", { n: i + 1 })}
+                onClick={() => api?.scrollTo(i)}
+                className={cn(
+                  "h-2 rounded-full transition-all",
+                  i === selectedIndex
+                    ? "w-6 bg-primary"
+                    : "w-2 bg-muted-foreground/30",
+                )}
+              />
+            ))}
+          </div>
+          <button
+            type="button"
+            aria-label={t("next")}
+            onClick={() => api?.scrollNext()}
+            className="touch-target text-muted-foreground hover:text-foreground transition-colors"
+          >
+            <ChevronRight className="h-5 w-5" />
+          </button>
         </div>
       </div>
     </section>

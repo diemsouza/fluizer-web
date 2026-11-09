@@ -17,10 +17,8 @@ import {
   DrawerTitle,
 } from "@/src/components/ui/drawer";
 import { useIsMobile } from "@/src/hooks/use-is-mobile";
-import {
-  detectPermissionPlatform,
-  type PermissionPlatform,
-} from "@/src/lib/voice-recording";
+import type { PermissionPlatform } from "@/src/core/permission-platform";
+import { detectPermissionPlatform } from "@/src/lib/voice-recording";
 
 type MicPermissionDialogProps = {
   open: boolean;

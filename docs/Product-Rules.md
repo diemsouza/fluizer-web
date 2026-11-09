@@ -480,13 +480,15 @@ A próxima pergunta não chega sozinha depois do feedback. Assim o usuário abso
 - **Estado:** vem do servidor. Atividade ativa, nenhuma pergunta pendente e a última mensagem de estudo é feedback. Nada é salvo, então o botão continua lá ao recarregar ou voltar depois, e comandos no meio não o tiram do lugar. Pausar a atividade esconde, retomar devolve. Atividade nova ou troca de atividade tira o botão.
 - **Toque:** o botão some, aparece o digitando e sai a próxima pergunta, pelo mesmo caminho de sempre. Não aparece mensagem do usuário no chat. Se a rodada acabou, antes vem o resumo da conclusão. Em erro, o botão volta com o mesmo aviso de mensagem não enviada.
 - **Comando `/continuar`:** faz o mesmo, e o botão some como se tivesse sido tocado. `/praticar` também, quando está aguardando Continuar.
+- **Texto do botão:** "Continuar" quando a última mensagem do chat é o feedback; "Continuar praticando" quando entrou qualquer mensagem depois dele (comando, texto solto, `/nova atividade` cancelada). O botão fica sempre no fim do chat e nunca some por mensagem nova, porque a pill fica desabilitada aguardando o Continuar. Ação, estados e `/continuar` são os mesmos nos dois textos.
+- **Toque sem pulo:** ao tocar, o botão some de uma vez e o chat não muda de altura: o espaço do botão fica para o digitando e nada aparece nem some na mensagem de feedback até a próxima pergunta chegar.
 - **Clique duplo:** travado nas duas pontas. O cliente desabilita no primeiro toque e o servidor só gera sem pergunta pendente.
 - **Texto solto aguardando Continuar:** não há pergunta para avaliar, então a resposta orienta tocar em Continuar. O botão fica.
 - **Janela de 15 minutos:** o Continuar não depende dela e renova a sessão ao enviar a pergunta.
 
 ### 8.6 Avaliação da pergunta
 
-Dois ícones discretos, like e dislike, colados à direita do Continuar, porque o foco é seguir a prática. Valem só para a última pergunta respondida e só enquanto a próxima não aparece. Sem Continuar (fim do fluxo), ficam no mesmo lugar até a próxima pergunta surgir. Tocar abre uma modal, e o voto só é gravado ao enviar: cancelar ou fechar não grava nada.
+Dois ícones discretos, like e dislike, porque o foco é seguir a prática. Valem só para a última pergunta respondida e só enquanto a próxima não aparece. Posição: ao lado do Continuar enquanto o botão está visível e a última mensagem do chat é o feedback. Em qualquer outro caso ficam embaixo da mensagem de feedback avaliada: quando entrou outra mensagem depois dele (o Continuar vira "Continuar praticando" no fim do chat), depois do toque em Continuar (o botão some) e no fim do fluxo, sem Continuar. Ficam ali até a próxima pergunta surgir. Tocar abre uma modal, e o voto só é gravado ao enviar: cancelar ou fechar não grava nada.
 
 - **Like:** "Feedback positivo", com campo de detalhes opcional. Abaixo do campo, em texto menor, a nota de que o feedback ajuda a melhorar as próximas perguntas, sem citar IA. Enviar sempre habilitado.
 - **Dislike:** "Feedback negativo", com seleção obrigatória do motivo e campo de detalhes opcional. Abaixo do campo, em texto menor, a nota sobre erros da IA (Seção 16). Enviar só habilita com motivo.
@@ -503,7 +505,7 @@ Dois ícones discretos, like e dislike, colados à direita do Continuar, porque 
 
 O like só registra. Ao enviar, like ou dislike, um toast agradece pelo feedback e o ícone fica preenchido.
 
-Depois de enviar, o ícone escolhido fica preenchido e os dois ficam desabilitados, sem nova avaliação, e o Continuar segue disponível. Ao tocar em Continuar, os ícones somem e aquela pergunta não pode mais ser avaliada. Se houve voto, a mensagem avaliada, a última do feedback, passa a mostrar só o ícone escolhido, menor e em cinza, com "Feedback enviado" ao lado, colado à mensagem e só para leitura. Sem voto, nada aparece. O voto fica gravado na própria mensagem, então recarregar ou reconectar mostra o mesmo resultado, e ele continua ali quando a pergunta volta na revisão. O servidor valida que é a última respondida, que ainda não foi avaliada e que a próxima não foi enviada. A avaliação não muda status, nota, contadores nem SM-2 da tentativa.
+Depois de enviar, o ícone escolhido fica preenchido e os dois ficam desabilitados, sem nova avaliação, e o Continuar segue disponível. Ao tocar em Continuar, os ícones somem de uma vez, sem mudar a altura do chat (o espaço fica reservado até a próxima pergunta chegar), e aquela pergunta não pode mais ser avaliada. Se houve voto, quando a próxima pergunta chega a mensagem avaliada, a última do feedback, passa a mostrar só o ícone escolhido, menor e em cinza, com "Feedback enviado" ao lado, colado à mensagem e só para leitura. Sem voto, nada aparece. O voto fica gravado na própria mensagem, então recarregar ou reconectar mostra o mesmo resultado, e ele continua ali quando a pergunta volta na revisão. O servidor valida que é a última respondida, que ainda não foi avaliada e que a próxima não foi enviada. A avaliação não muda status, nota, contadores nem SM-2 da tentativa.
 
 ---
 
@@ -964,12 +966,12 @@ Na pergunta de escuta (Seção 4), o `text` é só a instrução e o `audioMedia
 
 - Mensagens de estudo são pergunta, feedback (texto e áudio) e dica: mensagem do sistema com `intent` `practice_question`, `practice_feedback` ou `eval_tip` e com `questionId`. Avisos, respostas a comandos e mensagens do usuário não são de estudo.
 - Chave ligada: toda mensagem nova rola até o fim.
-- Mensagem de estudo que chega quando a última mensagem do chat não era de estudo rola até o fim (a mensagem inteira visível, com o espaço do digitando abaixo) e desliga a chave.
+- Mensagem de estudo que chega quando a última mensagem do chat não era de estudo rola até o fim (a mensagem inteira visível, com o espaço do digitando abaixo) e desliga a chave. Pergunta de estudo sempre conta como início de bloco, mesmo logo após um feedback (caso do Continuar).
 - Chave desligada: mensagem nova do sistema não rola. Se ficar fora da tela, aparece o botão "ir para o final" com a bolinha azul.
 - O usuário enviar qualquer mensagem (resposta, comando, opção) religa a chave e rola até o fim.
 - Se o usuário rolou para cima, nada rola sozinho, nem com a chave ligada; só aparece o botão.
 - O botão aparece só quando há mensagem fora da tela abaixo e some quando o usuário chega ao fim.
-- O "digitando" nunca rola a conversa. Ele vive num espaço fixo no fim da lista, que continua lá vazio quando ninguém está digitando, para a altura da conversa não mudar.
+- O "digitando" nunca rola a conversa. Ele vive num espaço fixo no fim da lista, o mesmo onde ficam o Continuar e a avaliação (um some e o outro aparece no mesmo lugar), que continua lá vazio quando ninguém está digitando, para a altura da conversa não mudar.
 - Mensagem já nasce com a altura final: imagem com a proporção conhecida antes de aparecer e player de áudio com altura fixa enquanto carrega.
 
 `imageMediaId` e `interactive` podem vir juntos na mesma mensagem (hoje: pergunta de reconhecimento por imagem, Seção 4, com um botão por opção). A transcrição de imagem usa só `imageMediaId`, com a pergunta como legenda e resposta livre (digitada ou por voz). A superfície web mostra a imagem, o texto como legenda e as opções como botões. O WhatsApp segue a prioridade acima: envia a imagem com o `text` como legenda e acrescenta as opções numeradas à legenda no envio, sem botões.

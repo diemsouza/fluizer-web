@@ -1,4 +1,9 @@
-import { useRef, useState, type SyntheticEvent } from "react";
+import {
+  useRef,
+  useState,
+  type ReactNode,
+  type SyntheticEvent,
+} from "react";
 import { AlertCircle, Check, Clock3 } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { cn } from "@/src/lib/utils";
@@ -24,6 +29,7 @@ export function MessageBubble({
   onButtonClick,
   zoomDisabled,
   wide,
+  footer,
 }: {
   message: Message;
   isNew?: boolean;
@@ -32,6 +38,7 @@ export function MessageBubble({
   onButtonClick?: (button: FormattedMessageButton, messageId: string) => void;
   zoomDisabled?: boolean;
   wide?: boolean;
+  footer?: ReactNode;
 }) {
   const isUser = message.from === "user";
   const [shouldAnimate] = useState(isNew);
@@ -194,6 +201,7 @@ export function MessageBubble({
       {message.questionRating !== undefined && (
         <QuestionRatingBadge rating={message.questionRating} />
       )}
+      {footer}
     </div>
   );
 }

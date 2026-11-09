@@ -103,7 +103,8 @@ function toMessage(
     questionId: row.questionId,
   });
   const questionRating = readQuestionRating(row.metadata)?.rating;
-  return { ...message, isStudy, questionRating };
+  const isQuestion = isStudy && row.intent === "practice_question";
+  return { ...message, isStudy, isQuestion, questionRating };
 }
 
 // Card do antigo passo de captura (nivel no chat): o nivel agora e trocado na

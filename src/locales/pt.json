@@ -128,6 +128,7 @@
       "save_error": "Não deu pra salvar o nível. Tenta de novo."
     },
     "chat": {
+      "commands_title": "Comandos",
       "attach_file_aria": "Anexar arquivo",
       "attach_file_title": "Enviar imagem, PDF ou texto",
       "placeholder_archived": "Atividade arquivada",
@@ -167,7 +168,7 @@
         "title": "Libere o microfone",
         "description": "Para responder por voz, permita o acesso ao microfone para fluizer.com. Você também pode responder digitando.",
         "confirm": "Entendi",
-        "ios": {
+        "ios_browser": {
           "steps": [
             "Toque no botão de menu da página, ao lado do endereço.",
             "Toque em Mais e depois em Ajustes do Site.",
@@ -176,13 +177,31 @@
           ],
           "note": "Se não aparecer, abra Ajustes > Apps > Safari > Microfone e escolha Perguntar."
         },
-        "android": {
+        "ios_standalone": {
           "steps": [
-            "Toque no ícone à esquerda do endereço.",
-            "Toque em Permissões e ative Microfone.",
+            "Feche o Fluizer na troca de apps, deslizando ele para cima.",
+            "Abra o Fluizer de novo e toque no microfone.",
+            "Toque em Permitir."
+          ],
+          "note": "Se o pedido não aparecer, abra Ajustes > Apps > Safari > Microfone e escolha Perguntar."
+        },
+        "android_browser": {
+          "steps": [
+            "Toque no ícone ao lado do endereço.",
+            "Toque em Permissões e depois em Microfone.",
+            "Escolha Permitir.",
             "Recarregue a página."
           ],
-          "note": "Se continuar bloqueado, abra Configurações > Apps > Chrome > Permissões > Microfone e permita."
+          "note": ""
+        },
+        "android_standalone": {
+          "steps": [
+            "Abra o Chrome e toque no menu de três pontos.",
+            "Toque em Configurações e depois em Configurações do site.",
+            "Toque em Microfone, depois em fluizer.com, e escolha Permitir.",
+            "Feche o Fluizer e abra de novo."
+          ],
+          "note": ""
         },
         "mac_safari": {
           "steps": [
@@ -204,6 +223,7 @@
     },
     "practice_actions": {
       "continue": "Continuar",
+      "continue_practicing": "Continuar praticando",
       "like_aria": "Curti esta pergunta",
       "dislike_aria": "Não curti esta pergunta",
       "like_title": "Feedback positivo",
@@ -347,6 +367,9 @@
     "how_it_works": {
       "title": "Na prática.",
       "subtitle": "Material ou tema, você escolhe. A prática fica sempre pronta pra você.",
+      "previous": "Slide anterior",
+      "next": "Próximo slide",
+      "go_to_slide": "Ir para o slide {n}",
       "blocks": {
         "0": {
           "title": "Pratique o que faz sentido pro seu momento.",

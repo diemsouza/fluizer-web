@@ -29,6 +29,7 @@ type PracticePillContextValue = {
   isVisible: boolean;
   isActive: boolean;
   practiceActions: PracticeActions | null;
+  isContinuing: boolean;
   hasContinueFailed: boolean;
   continuePractice: () => Promise<void>;
   finishTurn: () => Promise<void>;
@@ -163,7 +164,8 @@ export function PracticePillProvider({
     () => ({
       isVisible: state.isVisible,
       isActive: !isContinuing && isPracticePillActive(state, now),
-      practiceActions: isContinuing ? null : state.practiceActions,
+      practiceActions: state.practiceActions,
+      isContinuing,
       hasContinueFailed,
       continuePractice,
       finishTurn,

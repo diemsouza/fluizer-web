@@ -93,6 +93,7 @@ export const Composer = forwardRef<ComposerHandle, ComposerProps>(
     const [text, setText] = useState("");
     const [activeIndex, setActiveIndex] = useState(0);
     const [menuDismissed, setMenuDismissed] = useState(false);
+    const [hasNavigated, setHasNavigated] = useState(false);
     const textareaRef = useRef<HTMLTextAreaElement>(null);
     const containerRef = useRef<HTMLDivElement>(null);
 
@@ -100,7 +101,8 @@ export const Composer = forwardRef<ComposerHandle, ComposerProps>(
       focus: () => textareaRef.current?.focus(),
     }));
 
-    const commandQuery = text.startsWith("/") && !/\s/.test(text) ? text : null;
+    const commandQuery = text !== "" && !/\s/.test(text) ? text : null;
+    const isSlashQuery = commandQuery?.startsWith("/") ?? false;
     const commandMatches =
       commandQuery !== null ? searchAutoCompleteCommands(commandQuery) : [];
     const showCommandMenu =
@@ -135,6 +137,7 @@ export const Composer = forwardRef<ComposerHandle, ComposerProps>(
 
     useEffect(() => {
       setActiveIndex(0);
+      setHasNavigated(false);
       if (commandQuery === null) setMenuDismissed(false);
     }, [commandQuery]);
 
@@ -216,15 +219,18 @@ export const Composer = forwardRef<ComposerHandle, ComposerProps>(
       if (showCommandMenu) {
         if (e.key === "ArrowDown") {
           e.preventDefault();
+          setHasNavigated(true);
           setActiveIndex((i) => Math.min(i + 1, commandMatches.length - 1));
           return;
         }
         if (e.key === "ArrowUp") {
           e.preventDefault();
+          setHasNavigated(true);
           setActiveIndex((i) => Math.max(i - 1, 0));
           return;
         }
-        if (e.key === "Enter" || e.key === "Tab") {
+        const isPlainEnter = e.key === "Enter" && !isSlashQuery && !hasNavigated;
+        if ((e.key === "Enter" || e.key === "Tab") && !isPlainEnter) {
           e.preventDefault();
           selectCommand(commandMatches[clampedActiveIndex]);
           return;
@@ -302,6 +308,9 @@ export const Composer = forwardRef<ComposerHandle, ComposerProps>(
             <div ref={containerRef} className="relative w-full">
               {showCommandMenu && (
                 <div className="pointer-events-auto absolute inset-x-0 bottom-full z-30 mb-2 overflow-hidden rounded-2xl border border-border bg-popover text-popover-foreground shadow-md">
+                  <p className="px-3 pt-2 text-caption font-medium text-muted-foreground">
+                    {t("commands_title")}
+                  </p>
                   <ul
                     className="overflow-y-auto py-1"
                     style={{ maxHeight: "min(15rem, 40vh)" }}
@@ -314,8 +323,12 @@ export const Composer = forwardRef<ComposerHandle, ComposerProps>(
                             e.preventDefault();
                             selectCommand(command);
                           }}
-                          onMouseEnter={() => setActiveIndex(index)}
+                          onMouseEnter={() => {
+                            setActiveIndex(index);
+                            setHasNavigated(true);
+                          }}
                           className={`flex min-h-touch w-full items-center px-3 py-2 text-left text-base ${
+                            (isSlashQuery || hasNavigated) &&
                             index === clampedActiveIndex
                               ? "bg-accent text-accent-foreground"
                               : ""

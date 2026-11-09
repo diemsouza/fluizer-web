@@ -2,6 +2,11 @@ import { NextRequest, NextResponse } from "next/server";
 import { isProtectedPath, sanitizeRedirectPath } from "./core/auth-routes";
 import { buildAttributionCookie } from "./core/attribution";
 import {
+  DEBUG_COOKIE_MAX_AGE_DAYS,
+  DEBUG_COOKIE_NAME,
+  parseDebugParam,
+} from "./core/debug";
+import {
   LAST_ACCESS_COOKIE_NAME,
   shouldUpdateLastAccess,
 } from "./core/last-access";
@@ -61,6 +66,23 @@ function captureAttribution(req: NextRequest, res: NextResponse): void {
   });
 }
 
+// Sem httpOnly de proposito: o GTM le este cookie por JavaScript para bloquear
+// a tag do Clarity. Os outros cookies sao httpOnly, nao "corrigir" este.
+// Sem domain para valer tambem em localhost e nos previews da Vercel.
+function captureDebug(req: NextRequest, res: NextResponse): void {
+  const action = parseDebugParam(req.nextUrl.searchParams.get("debug"));
+  if (action === "on") {
+    res.cookies.set(DEBUG_COOKIE_NAME, "1", {
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "lax",
+      path: "/",
+      maxAge: DEBUG_COOKIE_MAX_AGE_DAYS * 24 * 60 * 60,
+    });
+  } else if (action === "off") {
+    res.cookies.delete({ name: DEBUG_COOKIE_NAME, path: "/" });
+  }
+}
+
 // O GA4 le a campanha da URL da pagina: sem repassar para a raiz, o redirect
 // /app -> /login deixa os params so dentro de redirect_to e a sessao perde a origem.
 function forwardCampaignParams(source: URLSearchParams, target: URL): void {
@@ -81,6 +103,7 @@ export async function middleware(req: NextRequest) {
   if (!isAppRoute && !isLoginRoute) {
     const res = NextResponse.next();
     captureAttribution(req, res);
+    captureDebug(req, res);
     return res;
   }
 
@@ -101,6 +124,7 @@ export async function middleware(req: NextRequest) {
     forwardCampaignParams(req.nextUrl.searchParams, url);
     const redirect = NextResponse.redirect(url);
     captureAttribution(req, redirect);
+    captureDebug(req, redirect);
     return redirect;
   }
 
@@ -125,6 +149,7 @@ export async function middleware(req: NextRequest) {
   }
 
   captureAttribution(req, res);
+  captureDebug(req, res);
 
   const lastAccess = req.cookies.get(LAST_ACCESS_COOKIE_NAME)?.value;
   // Sessoes anteriores ao fz_last_access ganham o cookie no proximo acesso,
