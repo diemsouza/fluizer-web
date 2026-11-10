@@ -30,6 +30,7 @@ import {
   type ComposerActionRole,
 } from "@/src/components/chat/composer-action-button";
 import { useHoldToRecord } from "@/src/hooks/use-hold-to-record";
+import { useBlockPageScroll } from "@/src/hooks/use-block-page-scroll";
 import { MicPermissionDialog } from "@/src/components/chat/mic-permission-dialog";
 
 const COMPOSER_MAX_ROWS = 4;
@@ -42,6 +43,11 @@ const CAPTURE_ERROR_KEYS: Record<VoiceCaptureError, string> = {
 
 const COMPOSER_BACKDROP_MASK =
   "linear-gradient(to bottom, transparent 0%, rgba(0,0,0,0.55) 45%, rgba(0,0,0,0.85) 100%)";
+
+// Preenche o espaco abaixo do composer no mobile (margem do teclado e area
+// segura), para a conversa nunca aparecer por tras.
+const COMPOSER_BELOW_FILL_CLASS =
+  "pointer-events-none absolute inset-x-0 top-full -z-10 h-[calc(var(--cz-vv-offset,0px)+env(safe-area-inset-bottom))] md:hidden";
 
 export type ComposerHandle = {
   focus: () => void;
@@ -96,6 +102,8 @@ export const Composer = forwardRef<ComposerHandle, ComposerProps>(
     const [hasNavigated, setHasNavigated] = useState(false);
     const textareaRef = useRef<HTMLTextAreaElement>(null);
     const containerRef = useRef<HTMLDivElement>(null);
+    const rootRef = useRef<HTMLDivElement>(null);
+    useBlockPageScroll(rootRef);
 
     useImperativeHandle(ref, () => ({
       focus: () => textareaRef.current?.focus(),
@@ -248,7 +256,7 @@ export const Composer = forwardRef<ComposerHandle, ComposerProps>(
     }
 
     return (
-      <div className="relative">
+      <div ref={rootRef} className="relative">
         {/* Fundo desfocado do footer, atrás de tudo. Usa a mesma cor do fundo
             do chat (thread.tsx) para o efeito só aparecer sobre as mensagens
             que passam por trás, sem mudar as laterais vazias. Rampa contínua:
@@ -260,6 +268,13 @@ export const Composer = forwardRef<ComposerHandle, ComposerProps>(
             maskImage: COMPOSER_BACKDROP_MASK,
             WebkitMaskImage: COMPOSER_BACKDROP_MASK,
           }}
+        />
+        <div
+          aria-hidden
+          className={cn(
+            COMPOSER_BELOW_FILL_CLASS,
+            "bg-[#F5F5F7] dark:bg-[#1C1C1E]",
+          )}
         />
         <div
           className={cn(
@@ -282,6 +297,14 @@ export const Composer = forwardRef<ComposerHandle, ComposerProps>(
                   aria-hidden
                   className={cn(
                     "absolute inset-0 -z-10 rounded-[inherit] border border-primary/20 bg-primary/15 backdrop-blur-xl backdrop-saturate-150 transition-opacity duration-200 motion-reduce:transition-none max-md:border-b-0 dark:bg-primary/20",
+                    isNoticeVisible ? "opacity-100" : "opacity-0",
+                  )}
+                />
+                <div
+                  aria-hidden
+                  className={cn(
+                    COMPOSER_BELOW_FILL_CLASS,
+                    "bg-primary/15 backdrop-blur-xl backdrop-saturate-150 transition-opacity duration-200 motion-reduce:transition-none dark:bg-primary/20",
                     isNoticeVisible ? "opacity-100" : "opacity-0",
                   )}
                 />
@@ -393,7 +416,7 @@ export const Composer = forwardRef<ComposerHandle, ComposerProps>(
                           ? (disabledReason ?? t("placeholder_archived"))
                           : t("placeholder_default")
                       }
-                      className="min-h-composer-field flex-1 resize-none rounded-none border-0 bg-transparent py-[var(--composer-field-padding)] leading-5 focus-visible:ring-0 focus-visible:ring-offset-0"
+                      className="min-h-composer-field flex-1 resize-none rounded-none border-0 bg-transparent py-[var(--composer-field-padding)] leading-5 [overscroll-behavior-y:contain] [touch-action:pan-y] focus-visible:ring-0 focus-visible:ring-offset-0"
                     />
                   </>
                 )}

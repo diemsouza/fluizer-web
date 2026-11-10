@@ -94,7 +94,9 @@ export const ChatThread = forwardRef<ComposerHandle, ChatThreadProps>(
       isUserScrolledUpRef,
       isFollowing,
       getDistanceFromBottom,
+      isAnimating,
       scrollToBottom,
+      scrollToMessage,
       snapToBottom,
       setPinned,
       scrollToBottomWhenSettled,
@@ -146,8 +148,8 @@ export const ChatThread = forwardRef<ComposerHandle, ChatThreadProps>(
     // Composer ou teclado mudam o padding inferior: quem acompanhava o fim
     // continua nele.
     useLayoutEffect(() => {
-      if (isFollowing()) snapToBottom();
-    }, [composerHeight, vvOffset, isFollowing, snapToBottom]);
+      if (isFollowing() && !isAnimating()) snapToBottom();
+    }, [composerHeight, vvOffset, isFollowing, isAnimating, snapToBottom]);
 
     useEffect(() => {
       if (isAtBottom) setHasNewMessage(false);
@@ -199,7 +201,13 @@ export const ChatThread = forwardRef<ComposerHandle, ChatThreadProps>(
       const shouldScroll = startsStudy || isAutoScrollOnRef.current;
       if (startsStudy) isAutoScrollOnRef.current = false;
       if (shouldScroll && !isUserScrolledUpRef.current) {
-        scrollToBottom("smooth");
+        const bubbles =
+          contentRef.current?.querySelectorAll<HTMLElement>(
+            "[data-message-bubble]",
+          );
+        const tailEl = bubbles?.[bubbles.length - 1];
+        if (tailEl) scrollToMessage(tailEl);
+        else scrollToBottom("smooth");
         return;
       }
       setPinned(false);
@@ -207,10 +215,12 @@ export const ChatThread = forwardRef<ComposerHandle, ChatThreadProps>(
     }, [
       messages,
       scrollToBottom,
+      scrollToMessage,
       scrollToBottomWhenSettled,
       setPinned,
       getDistanceFromBottom,
       isUserScrolledUpRef,
+      contentRef,
     ]);
 
     useEffect(() => {

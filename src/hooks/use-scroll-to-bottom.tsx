@@ -3,6 +3,11 @@ import { useCallback, useEffect, useRef, useState } from "react";
 const SETTLE_QUIET_MS = 150;
 const SETTLE_MAX_WAIT_MS = 2500;
 const SCROLL_UP_TOLERANCE_PX = 2;
+const SCROLL_MIN_MS = 280;
+const SCROLL_MAX_MS = 550;
+const SCROLL_MS_PER_PX = 0.6;
+// Folga entre o topo da lista e o topo da mensagem alinhada (padding do container).
+const MESSAGE_TOP_GAP_PX = 16;
 
 // nearBottomPx: distancia do fim em que a ultima mensagem ainda aparece
 // inteira (espaco do digitando e do botao abaixo dela).
@@ -17,6 +22,7 @@ export function useScrollToBottom({ nearBottomPx }: { nearBottomPx: number }) {
   const isPinnedRef = useRef(true);
   const isUserScrolledUpRef = useRef(false);
   const lastScrollTopRef = useRef(0);
+  const animationFrameRef = useRef<number | null>(null);
   const settleCallbackRef = useRef<(() => void) | null>(null);
   const settleQuietTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(
     null,
@@ -39,12 +45,91 @@ export function useScrollToBottom({ nearBottomPx }: { nearBottomPx: number }) {
     scrollContainerToBottom("instant");
   }, [scrollContainerToBottom]);
 
+  const isAnimating = useCallback(
+    (): boolean => animationFrameRef.current !== null,
+    [],
+  );
+
+  const cancelAnimation = useCallback(() => {
+    if (animationFrameRef.current === null) return;
+    cancelAnimationFrame(animationFrameRef.current);
+    animationFrameRef.current = null;
+  }, []);
+
+  // O scroll nativo suave e interrompido por qualquer snap do observer; esta
+  // animacao segue o alvo a cada frame e o observer fica quieto enquanto roda.
+  const animateScrollTo = useCallback(
+    (getTarget: () => number, onDone?: () => void) => {
+      const containerEl = containerRef.current;
+      if (!containerEl) return;
+      cancelAnimation();
+      const startTop = containerEl.scrollTop;
+      const startedAt = performance.now();
+      const duration = Math.min(
+        SCROLL_MAX_MS,
+        Math.max(
+          SCROLL_MIN_MS,
+          Math.abs(getTarget() - startTop) * SCROLL_MS_PER_PX,
+        ),
+      );
+
+      function step(now: number) {
+        if (!containerEl) return;
+        const progress = Math.min(1, (now - startedAt) / duration);
+        const eased = 1 - Math.pow(1 - progress, 3);
+        const target = getTarget();
+        containerEl.scrollTop = startTop + (target - startTop) * eased;
+        if (progress < 1) {
+          animationFrameRef.current = requestAnimationFrame(step);
+          return;
+        }
+        animationFrameRef.current = null;
+        onDone?.();
+      }
+      animationFrameRef.current = requestAnimationFrame(step);
+    },
+    [cancelAnimation],
+  );
+
+  const getMaxScrollTop = useCallback((): number => {
+    const containerEl = containerRef.current;
+    if (!containerEl) return 0;
+    return Math.max(0, containerEl.scrollHeight - containerEl.clientHeight);
+  }, []);
+
   const scrollToBottom = useCallback(
     (behavior: ScrollBehavior = "smooth") => {
       setPinned(true);
+      if (behavior === "smooth") {
+        animateScrollTo(getMaxScrollTop);
+        return;
+      }
+      cancelAnimation();
       scrollContainerToBottom(behavior);
     },
-    [setPinned, scrollContainerToBottom],
+    [setPinned, animateScrollTo, getMaxScrollTop, cancelAnimation, scrollContainerToBottom],
+  );
+
+  // Mensagem curta termina no fim; mensagem maior que a area visivel para com o
+  // topo dela perto do topo da lista, para ler de cima para baixo.
+  const scrollToMessage = useCallback(
+    (messageEl: HTMLElement) => {
+      const containerEl = containerRef.current;
+      if (!containerEl) return;
+      function getTarget(): number {
+        if (!containerEl) return 0;
+        const messageTop =
+          messageEl.getBoundingClientRect().top -
+          containerEl.getBoundingClientRect().top +
+          containerEl.scrollTop;
+        return Math.min(getMaxScrollTop(), messageTop - MESSAGE_TOP_GAP_PX);
+      }
+      setPinned(true);
+      animateScrollTo(getTarget, () => {
+        if (getTarget() < getMaxScrollTop() - 1) setPinned(false);
+      });
+    },
+    [animateScrollTo, getMaxScrollTop, setPinned],
   );
 
   const getDistanceFromBottom = useCallback((): number => {
@@ -153,6 +238,10 @@ export function useScrollToBottom({ nearBottomPx }: { nearBottomPx: number }) {
 
     function handleContentResize() {
       if (notifySettleActivity()) return;
+      if (isAnimating()) {
+        measure();
+        return;
+      }
       if (isPinnedRef.current) {
         snapToBottom();
         return;
@@ -163,11 +252,18 @@ export function useScrollToBottom({ nearBottomPx }: { nearBottomPx: number }) {
     measure();
     lastScrollTopRef.current = containerEl.scrollTop;
     containerEl.addEventListener("scroll", handleScroll, { passive: true });
+    const userGestures = ["wheel", "touchstart", "keydown"] as const;
+    userGestures.forEach((name) =>
+      containerEl.addEventListener(name, cancelAnimation, { passive: true }),
+    );
     const resizeObserver = new ResizeObserver(handleContentResize);
     resizeObserver.observe(contentEl);
 
     return () => {
       containerEl.removeEventListener("scroll", handleScroll);
+      userGestures.forEach((name) =>
+        containerEl.removeEventListener(name, cancelAnimation),
+      );
       resizeObserver.disconnect();
     };
   }, [
@@ -176,7 +272,11 @@ export function useScrollToBottom({ nearBottomPx }: { nearBottomPx: number }) {
     snapToBottom,
     notifySettleActivity,
     getDistanceFromBottom,
+    isAnimating,
+    cancelAnimation,
   ]);
+
+  useEffect(() => cancelAnimation, [cancelAnimation]);
 
   useEffect(() => clearSettleTimers, [clearSettleTimers]);
 
@@ -195,7 +295,9 @@ export function useScrollToBottom({ nearBottomPx }: { nearBottomPx: number }) {
     isUserScrolledUpRef,
     isFollowing,
     getDistanceFromBottom,
+    isAnimating,
     scrollToBottom,
+    scrollToMessage,
     snapToBottom,
     setPinned,
     scrollToBottomWhenSettled,

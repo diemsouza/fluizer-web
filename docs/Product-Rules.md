@@ -171,7 +171,7 @@ Na web, o usuário pode responder por áudio gravado no próprio composer. Com o
 - **Gravação:** limite de 30 segundos. Aos 20 segundos o cronômetro muda de cor e aparece o aviso "Restam apenas 10s"; aos 30 a gravação para e é enviada sozinha. Gravação com menos de 1 segundo é descartada sem mensagem. A lixeira cancela e descarta. Não há tela de pré-ouvir: enviar é parar e enviar.
 - **Interrupção:** se a gravação é interrompida (aba em segundo plano, tela bloqueada, erro do gravador), o que já foi gravado é enviado quando passa de 1 segundo e descartado abaixo disso. A tela nunca fica presa no estado gravando.
 - **Envio:** otimista. A bolha do usuário aparece na hora com o player, e "Enviando" fica embaixo até o arquivo ser recebido. Se falhar, a bolha fica apagada com "Não foi enviado." e "Tentar de novo", pelo mesmo mecanismo de reenvio das demais mensagens.
-- **Permissão:** o primeiro pedido é sempre o do próprio navegador. A tela do produto ("Libere o microfone", com o passo a passo da plataforma) só aparece quando o acesso é negado; "Entendi" fecha e leva ao campo de texto. Sem microfone ou microfone em uso por outro app geram um aviso curto, sem tela.
+- **Permissão:** o primeiro pedido é sempre o do próprio navegador. A tela do produto ("Libere o microfone", com o passo a passo da plataforma) só aparece quando o acesso é negado. O passo a passo muda por plataforma: iPhone no navegador, iPhone com o app salvo na tela de início (fechar o Fluizer na troca de apps e abrir de novo), Android no navegador, Android com o app instalado (liberar o microfone do site no Chrome e reabrir), Safari no Mac e demais navegadores de computador; "Entendi" fecha e leva ao campo de texto. Sem microfone ou microfone em uso por outro app geram um aviso curto, sem tela.
 - **Avaliação:** o áudio é transcrito e a transcrição segue exatamente o caminho de uma resposta digitada: mesma avaliação, mesmo feedback, mesmo SM-2 e mesma nota, com o bônus de resposta por áudio (Seção 6.3).
 - **Áudio sem fala:** transcrição sem nenhuma letra (silêncio, ruído) não chega à avaliação. A mensagem fica salva com o áudio, volta "Não deu para ouvir o áudio. Grave de novo ou responda digitando." e a pergunta continua pendente.
 - **Transcrição de áudio:** continua exigindo resposta digitada (Seção 4); voz nela não é avaliada. Tradução de áudio e transcrição de imagem aceitam voz normalmente.
@@ -539,7 +539,7 @@ Usuário sem nenhuma atividade criada recebe, junto da resposta ao comando `ajud
 A lista de comandos tem duas superfícies de descoberta, ambas alimentadas pela mesma fonte única de comandos e aliases, sem lista duplicada:
 
 - O comando `ajuda`, que devolve a lista formatada.
-- O autocomplete do composer na superfície web: ao digitar `/`, o campo sugere comandos de forma incremental, filtrando por prefixo ou alias conforme o usuário digita, e envia o comando escolhido direto.
+- O autocomplete do composer na superfície web: ao digitar `/`, o campo sugere comandos de forma incremental, filtrando por prefixo ou alias conforme o usuário digita, e envia o comando escolhido direto. Sem a barra, só vale o prefixo do nome do comando; alias e trecho no meio do nome só entram com a barra, para texto comum não abrir sugestão à toa.
 
 O comando `ajuda` não aparece na própria lista que gera nem no autocomplete. Comandos de confirmação dentro de um fluxo em andamento (`sim`, `não`, `cancelar`) e o comando interno de staff também ficam fora das duas superfícies. Alterar a fonte de comandos atualiza as duas ao mesmo tempo.
 
@@ -966,7 +966,7 @@ Na pergunta de escuta (Seção 4), o `text` é só a instrução e o `audioMedia
 
 - Mensagens de estudo são pergunta, feedback (texto e áudio) e dica: mensagem do sistema com `intent` `practice_question`, `practice_feedback` ou `eval_tip` e com `questionId`. Avisos, respostas a comandos e mensagens do usuário não são de estudo.
 - Chave ligada: toda mensagem nova rola até o fim.
-- Mensagem de estudo que chega quando a última mensagem do chat não era de estudo rola até o fim (a mensagem inteira visível, com o espaço do digitando abaixo) e desliga a chave. Pergunta de estudo sempre conta como início de bloco, mesmo logo após um feedback (caso do Continuar).
+- Mensagem de estudo que chega quando a última mensagem do chat não era de estudo rola até o fim (a mensagem inteira visível, com o espaço do digitando abaixo) e desliga a chave. Se a mensagem for maior que a área visível, a rolagem para com o topo dela logo abaixo do topo da lista, para ler de cima para baixo. A mensagem nasce no lugar, só com fade, e a rolagem anima em velocidade média (cerca de 0,3 a 0,55 s), sem salto. Pergunta de estudo sempre conta como início de bloco, mesmo logo após um feedback (caso do Continuar).
 - Chave desligada: mensagem nova do sistema não rola. Se ficar fora da tela, aparece o botão "ir para o final" com a bolinha azul.
 - O usuário enviar qualquer mensagem (resposta, comando, opção) religa a chave e rola até o fim.
 - Se o usuário rolou para cima, nada rola sozinho, nem com a chave ligada; só aparece o botão.

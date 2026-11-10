@@ -263,8 +263,11 @@ export function LiveThreadClient({
     setIsTurnActive(true);
   }, []);
 
+  // A bandeja encolhe o composer e mexe no chat: some junto da mensagem nova.
+  const isHidingReviewOnNextMessageRef = useRef(false);
+
   const handleContinue = useCallback(() => {
-    setShowPendingReview(false);
+    isHidingReviewOnNextMessageRef.current = true;
     beginTurn();
   }, [beginTurn]);
 
@@ -751,6 +754,12 @@ export function LiveThreadClient({
     [messages, optimisticSelections],
   );
   const tailId = visibleMessages.at(-1)?.id;
+
+  useEffect(() => {
+    if (!isHidingReviewOnNextMessageRef.current) return;
+    isHidingReviewOnNextMessageRef.current = false;
+    setShowPendingReview(false);
+  }, [tailId]);
 
   // Ao tocar em Continuar o estado do servidor zera antes da pergunta chegar:
   // segura o ultimo estado ate entrar mensagem nova, para o chat nao mudar de
