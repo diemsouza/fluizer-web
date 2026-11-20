@@ -10,6 +10,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/src/components/ui/dialog";
+import { Button } from "@/src/components/ui/button";
 import { PhoneStep } from "@/src/app/login/phone-step";
 import { CodeStep } from "@/src/app/login/code-step";
 import {
@@ -25,6 +26,7 @@ type PhoneConfirmModalProps = {
   title: string;
   subtitle: string;
   onConfirmed: () => void;
+  secondaryAction?: { label: string; onClick: () => void };
 };
 
 // Cadastra e confirma o número na conta logada; reusa o envio de código do
@@ -35,6 +37,7 @@ export function PhoneConfirmModal({
   title,
   subtitle,
   onConfirmed,
+  secondaryAction,
 }: PhoneConfirmModalProps): React.JSX.Element {
   const t = useTranslations("login");
   const router = useRouter();
@@ -114,11 +117,26 @@ export function PhoneConfirmModal({
           <DialogDescription>{subtitle}</DialogDescription>
         </DialogHeader>
         {step === "phone" ? (
-          <PhoneStep
-            onSubmit={requestCode}
-            loading={loading}
-            error={phoneError}
-          />
+          <>
+            <PhoneStep
+              onSubmit={requestCode}
+              loading={loading}
+              error={phoneError}
+            />
+            {secondaryAction && (
+              <Button
+                variant="ghost"
+                className="w-full"
+                disabled={loading}
+                onClick={() => {
+                  reset();
+                  secondaryAction.onClick();
+                }}
+              >
+                {secondaryAction.label}
+              </Button>
+            )}
+          </>
         ) : (
           <CodeStep
             phone={phone}

@@ -100,6 +100,10 @@ export function formatActivityCreationInProgress(): FormattedMessage {
   return { text: "A atividade já está sendo criada." };
 }
 
+export function formatActivityCreating(): FormattedMessage {
+  return { text: "Criando nova atividade..." };
+}
+
 export function formatDailyActivityLimitReached(): FormattedMessage {
   return { text: "⚠️ Você atingiu o limite de atividades de hoje." };
 }
@@ -656,6 +660,53 @@ export function formatEngagementReminder(
     text: ENGAGEMENT_REMINDER_TEXT[reminder](params),
     templateName: reminder,
     templateBodyParams: ENGAGEMENT_REMINDER_PARAMS[reminder](params),
+  };
+}
+
+export type EngagementReminderEmail = {
+  subject: string;
+  title: string;
+  message: string;
+  buttonLabel: string;
+  footer: string;
+};
+
+const ENGAGEMENT_REMINDER_EMAIL_SUBJECT = "Fluizer: Lembrete de prática de inglês";
+
+const ENGAGEMENT_REMINDER_EMAIL_FOOTER =
+  "Prefere receber pelo WhatsApp? Cadastre seu número em Lembrete de prática, no menu da sua conta. Lá também dá pra mudar o horário ou desativar o lembrete.";
+
+const ENGAGEMENT_REMINDER_EMAIL_BODY: Record<
+  EngagementReminder,
+  (
+    params: EngagementReminderParams,
+  ) => Pick<EngagementReminderEmail, "title" | "message" | "buttonLabel">
+> = {
+  daily_reminder_revision_v2: ({ eligibleCount }) => ({
+    title: "Você tem perguntas para revisar",
+    message: `Você tem perguntas que passaram da data de revisão.\n\nPendentes: ${eligibleCount}\n\nNão deixe a revisão acumular.`,
+    buttonLabel: "Revisar agora",
+  }),
+  daily_reminder_v2: () => ({
+    title: "Sua prática de inglês está pendente",
+    message: "Alguns minutos hoje já mantêm o seu ritmo.",
+    buttonLabel: "Praticar agora",
+  }),
+  nudge_days: ({ daysInactive }) => ({
+    title: `Sua prática de inglês está parada há ${daysInactive} dias`,
+    message: "Sua atividade continua salva. Retome de onde parou.",
+    buttonLabel: "Retomar prática",
+  }),
+};
+
+export function formatEngagementReminderEmail(
+  reminder: EngagementReminder,
+  params: EngagementReminderParams,
+): EngagementReminderEmail {
+  return {
+    subject: ENGAGEMENT_REMINDER_EMAIL_SUBJECT,
+    ...ENGAGEMENT_REMINDER_EMAIL_BODY[reminder](params),
+    footer: ENGAGEMENT_REMINDER_EMAIL_FOOTER,
   };
 }
 

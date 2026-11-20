@@ -190,8 +190,13 @@ export function useVoiceRecorder({
     }, TICK_MS);
     const meter = setInterval(() => {
       const analyser = meterRef.current?.analyser;
-      if (!analyser) return;
+      if (!analyser) {
+        console.log("[DEBUG meter] sem analyser");
+        return;
+      }
       const level = readLevel(analyser, buffer);
+      const track = streamRef.current?.getAudioTracks()[0];
+      console.log("[DEBUG meter]", analyser.context.state, level.toFixed(3), track?.muted, track?.readyState);
       setLevels((prev) => [...prev.slice(1), level]);
     }, LEVEL_TICK_MS);
     timersRef.current = [clock, meter];

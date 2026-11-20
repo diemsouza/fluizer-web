@@ -7,7 +7,10 @@ import {
   createNotification,
   markNotificationSent,
 } from "../repo/notifications.repo";
-import { formatEngagementReminder } from "../core/formatters";
+import {
+  formatEngagementReminder,
+  formatEngagementReminderEmail,
+} from "../core/formatters";
 import {
   daysSince,
   EngagementReminder,
@@ -16,8 +19,13 @@ import {
   pickEngagementReminder,
 } from "../core/engagement-reminder";
 import { sendWhatsAppTemplate } from "../vendors/whatsapp.vendor";
+import { EmailTemplates, sendEmailTemplateOrThrow } from "../vendors/email.vendor";
+import { getOrCreateWaLoginUrl } from "./wa-login-link-service";
+import { ReminderEmailDeliveryError } from "../lib/custom-errors";
 
 const DAILY_REMINDER_BATCH_LIMIT = 500;
+
+type ReminderParams = { eligibleCount: number; daysInactive: number };
 
 type DailyReminderResult = {
   processed: number;
@@ -41,7 +49,7 @@ async function trySendReminder(
   now: Date,
 ): Promise<"sent" | "skipped"> {
   const activity = user.activities[0];
-  if (!user.phone || !activity) return "skipped";
+  if (!activity) return "skipped";
 
   const daysInactive = daysSince(
     activity.lastInteractionAt ?? activity.createdAt,
@@ -55,21 +63,57 @@ async function trySendReminder(
   });
   if (!reminder) return "skipped";
 
-  await sendReminder(
-    user.id,
-    user.phone,
-    reminder,
-    { eligibleCount, daysInactive },
-    now,
-  );
-  return "sent";
+  const params = { eligibleCount, daysInactive };
+  // WhatsApp é o canal preferido; conta sem número (login pelo Google) recebe por e-mail.
+  if (user.phone) {
+    await sendWhatsAppReminder(user.id, user.phone, reminder, params, now);
+    return "sent";
+  }
+  if (user.email) {
+    await sendEmailReminder(user.id, user.email, reminder, params, now);
+    return "sent";
+  }
+  return "skipped";
 }
 
-async function sendReminder(
+async function sendEmailReminder(
+  userId: string,
+  email: string,
+  reminder: EngagementReminder,
+  params: ReminderParams,
+  now: Date,
+): Promise<void> {
+  const { subject, ...content } = formatEngagementReminderEmail(
+    reminder,
+    params,
+  );
+  const url = await getOrCreateWaLoginUrl(userId, { email });
+  const isSent = await sendEmailTemplateOrThrow({
+    to: email,
+    subject,
+    template: EmailTemplates.REMINDER,
+    data: { ...content, url },
+  });
+  if (!isSent) throw new ReminderEmailDeliveryError();
+
+  const notification = await createNotification({
+    userId,
+    targetChannel: "email",
+    targetId: email,
+    kind: reminder,
+    message: `${content.title}\n\n${content.message}`,
+    templateId: reminder,
+    metadata: { subject, url },
+    nextAt: now,
+  });
+  await markNotificationSent(notification.id, null);
+}
+
+async function sendWhatsAppReminder(
   userId: string,
   phone: string,
   reminder: EngagementReminder,
-  params: { eligibleCount: number; daysInactive: number },
+  params: ReminderParams,
   now: Date,
 ): Promise<void> {
   const message = formatEngagementReminder(reminder, params);

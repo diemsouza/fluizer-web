@@ -8,6 +8,7 @@ import {
   findUserSignedLink,
   updateUserSignedLink,
 } from "../repo/users.repo";
+import type { UserIdentity } from "../types/domain";
 
 type WaLoginLink = { url: string; code: string; expiresAt: Date };
 
@@ -16,10 +17,10 @@ function buildShortLinkUrl(code: string): string {
 }
 
 async function buildWaLoginUrl(
-  phone: string,
+  identity: UserIdentity,
   path: string,
 ): Promise<WaLoginLink> {
-  const token = await signWaLoginToken(phone);
+  const token = await signWaLoginToken(identity);
   const url = `${process.env.NEXT_PUBLIC_APP_URL}${path}?wa_token=${token}`;
   const expiresAt = new Date(Date.now() + WA_LOGIN_TOKEN_MAX_AGE_SEC * 1000);
   const shortLink = await createShortLink("wa_redirect", url, expiresAt);
@@ -34,14 +35,14 @@ async function buildWaLoginUrl(
 // a cada mensagem solta recebida dentro da mesma janela de 24h.
 export async function getOrCreateWaLoginUrl(
   userId: string,
-  phone: string,
+  identity: UserIdentity,
 ): Promise<string> {
   const cached = await findUserSignedLink(userId);
   if (cached && new Date(cached.signedLinkExpiresAt) > new Date()) {
     return buildShortLinkUrl(cached.signedLinkToken);
   }
 
-  const link = await buildWaLoginUrl(phone, "/login");
+  const link = await buildWaLoginUrl(identity, "/login");
   await updateUserSignedLink(userId, {
     signedLinkToken: link.code,
     signedLinkExpiresAt: link.expiresAt.toISOString(),
@@ -59,5 +60,5 @@ export async function resolveWhatsAppAccessLink(
 
   const user = await findUserByPhone(phone);
   if (!user) return appUrl;
-  return getOrCreateWaLoginUrl(user.id, phone);
+  return getOrCreateWaLoginUrl(user.id, { phone });
 }

@@ -18,6 +18,7 @@ import {
 } from "@/src/core/domain-param";
 import { NewActivityModal, type NewActivityStep } from "./new-activity-modal";
 import { useProfileLevel } from "./profile-level-provider";
+import { usePracticePill } from "./practice-pill-provider";
 
 type NewActivityOpenOptions = { step?: NewActivityStep; prefill?: string };
 
@@ -44,6 +45,7 @@ export function NewActivityProvider({
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const { level, setLevel } = useProfileLevel();
+  const { refresh: refreshPracticePill } = usePracticePill();
   const [open, setOpen] = useState(false);
   const [initialStep, setInitialStep] = useState<NewActivityStep>("main");
   const [prefill, setPrefill] = useState("");
@@ -75,6 +77,7 @@ export function NewActivityProvider({
     setLevel(createdLevel);
     setOpen(false);
     discardPresetDomain();
+    void refreshPracticePill();
     if (pathname !== "/app") {
       router.push("/app");
       return;

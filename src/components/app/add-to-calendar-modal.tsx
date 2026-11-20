@@ -35,6 +35,8 @@ import { useToast } from "@/src/hooks/use-toast";
 
 const ICS_FILE_NAME = "fluizer-pratica-diaria.ics";
 
+export type ReminderChannel = "whatsapp" | "email";
+
 function downloadIcsFile(content: string): void {
   const blob = new Blob([content], { type: "text/calendar;charset=utf-8" });
   const url = URL.createObjectURL(blob);
@@ -48,12 +50,14 @@ function downloadIcsFile(content: string): void {
 export function AddToCalendarModal({
   open,
   onOpenChange,
+  channel,
   dailyReminderEnabled,
   dailyReminderTime,
   isPreset = false,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  channel: ReminderChannel;
   dailyReminderEnabled: boolean;
   dailyReminderTime: string;
   // Valores vieram prontos de quem abriu (ex: logo após cadastrar o número):
@@ -133,7 +137,9 @@ export function AddToCalendarModal({
         <DialogHeader>
           <DialogTitle>{t("add_to_calendar_modal_title")}</DialogTitle>
           <DialogDescription>
-            {t("daily_reminder_modal_subtitle")}
+            {t("daily_reminder_modal_subtitle", {
+              channel: t(`daily_reminder_channel_${channel}`),
+            })}
           </DialogDescription>
         </DialogHeader>
 

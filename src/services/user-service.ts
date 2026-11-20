@@ -1,6 +1,7 @@
 import { after } from "next/server";
 import { Prisma, User } from "../lib/prisma";
-import { findOrCreateUser, UserIdentity } from "../repo/users.repo";
+import { findOrCreateUser } from "../repo/users.repo";
+import type { UserIdentity } from "../types/domain";
 import { TRIAL_DAYS } from "../lib/constants";
 import { sendSupportEmail } from "../vendors/email.vendor";
 import {

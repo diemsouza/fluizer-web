@@ -651,9 +651,10 @@ Link enviado pelo WhatsApp que aponta pro app pode carregar um token assinado qu
 autentica automaticamente quem abre o link no navegador, sem passar pelo formulário
 de telefone e código. Sessão já ativa no navegador é sempre respeitada, o token nunca
 sobrescreve um login existente. Token expira em 24 horas; expirado, ausente ou sem
-conta correspondente, cai no fluxo normal de login, sem nenhum aviso de erro. Só
-existe para conta com número: o link sai pelo WhatsApp e o token é resolvido pelo
-número.
+conta correspondente, cai no fluxo normal de login, sem nenhum aviso de erro. Conta
+com número recebe o link pelo WhatsApp e o token é resolvido pelo número. Conta sem
+número recebe o mesmo link no lembrete por e-mail (Seção 12), com o token resolvido
+pelo e-mail.
 
 O link efetivamente entregue ao usuário não carrega o token direto na URL: é um
 link curto (shortlink) que resolve por redirecionamento pro destino real, com a
@@ -704,7 +705,8 @@ Conta criada pelo Google cadastra o número depois do login, num modal de númer
 
 - **Gravação:** confirmado o código, o número entra na conta logada. Não cria nem abre outra conta, e a sessão continua a mesma. A partir daí o número é identidade da conta: entra por telefone e recebe pelo WhatsApp.
 - **Número de outra conta:** confirmado o código, se o número já pertence a outra conta, nada é gravado e aparece "Esse número já está sendo usado por outra conta." A checagem só acontece depois do código, para não revelar a qualquer conta logada se um número tem cadastro.
-- **Lembrete sem número:** o item "Lembrete de prática" do menu da conta, em conta sem número, abre primeiro o modal de número com título "Lembrete de prática" e subtítulo "Para receber o lembrete pelo WhatsApp, cadastre seu número." Confirmado o número, abre em seguida o modal de lembrete com o lembrete ativado e o horário da conta (o padrão do cadastro), com "Salvar" liberado para a pessoa só ajustar e salvar. Fechou sem confirmar, nada muda. Conta com número abre o modal de lembrete direto.
+- **Lembrete sem número:** o item "Lembrete de prática" do menu da conta, em conta sem número, abre sempre primeiro o modal de número com título "Lembrete de prática", subtítulo "Para receber o lembrete pelo WhatsApp, cadastre seu número." e a opção "Prefiro receber por e-mail" embaixo do campo. Confirmado o número, abre em seguida o modal de lembrete com o lembrete ativado e o horário da conta (o padrão do cadastro), com "Salvar" liberado para a pessoa só ajustar e salvar. Tocou em "Prefiro receber por e-mail", abre o modal de lembrete com o estado e o horário atuais da conta, sem preset. Fechou sem confirmar nem escolher, nada muda. Conta com número abre o modal de lembrete direto.
+- **Canal no modal de lembrete:** o subtítulo diz por onde o lembrete chega: "Escolha um horário e receba um aviso todo dia pelo WhatsApp pra praticar." com número, e "...pelo e-mail pra praticar." sem número. Desativar o lembrete é sempre pelo mesmo modal.
 - **Abertura automática:** em conta sem número, o mesmo fluxo abre sozinho alguns segundos (3 s) depois da mensagem "Você respondeu sua primeira pergunta dessa atividade...", a pausa natural depois do primeiro feedback de uma atividade nova. Se houver áudio tocando nesse momento, espera ele terminar. Se a pessoa tocar em Praticar antes, não abre e fica para a próxima atividade nova.
 - **Só uma vez:** a abertura automática fica registrada na conta no momento em que abre. Fechada, não reabre sozinha em nenhuma sessão ou navegador; o número continua disponível pelo item do lembrete.
 
@@ -724,9 +726,11 @@ O Google bloqueia login dentro do navegador de apps como Instagram, Facebook, Me
 
 ## 12. Lembrete diário e reengajamento
 
-Um único fluxo automático de notificação pelo WhatsApp leva o usuário de volta à prática na superfície web (`/app`). Lembrete diário e reengajamento por inatividade não são fluxos separados: a decisão sai só de quantos dias se passaram desde a última resposta de prática do usuário, calculada no momento do disparo, sem estado próprio guardado entre um dia e outro.
+Um único fluxo automático de notificação leva o usuário de volta à prática na superfície web (`/app`). Lembrete diário e reengajamento por inatividade não são fluxos separados: a decisão sai só de quantos dias se passaram desde a última resposta de prática do usuário, calculada no momento do disparo, sem estado próprio guardado entre um dia e outro.
 
-Aplica-se só a usuário com ao menos uma Activity ativa e com número cadastrado. Usuário sem atividade não recebe nada deste fluxo, esse caso é tratado pela Seção 10.1. Conta sem número (login com Google, Seção 11.3) também não recebe, até cadastrar o número (Seção 11.3.3).
+Aplica-se só a usuário com ao menos uma Activity ativa. Usuário sem atividade não recebe nada deste fluxo, esse caso é tratado pela Seção 10.1.
+
+**Canal:** WhatsApp é o canal preferido. Conta com número recebe pelo WhatsApp (templates abaixo). Conta sem número (login com Google, Seção 11.3) recebe por e-mail, com as mesmas regras de dia, horário e limite diário, até cadastrar o número (Seção 11.3.3); a partir daí passa a receber só pelo WhatsApp.
 
 ### Disparo
 
@@ -770,6 +774,18 @@ Botão: "Quero acessar"
 Botão: "Quero retomar"
 
 O toque em qualquer um dos botões não tem tratamento próprio por origem: chega como uma mensagem comum e recebe a resposta universal abaixo.
+
+### Mensagens por e-mail
+
+Assunto de todas: "Fluizer: Lembrete de prática de inglês". Cada e-mail tem título, texto, um botão com o link de login automático (Seção 11.2) e o mesmo rodapé.
+
+**Com revisão pendente:** título "Você tem perguntas para revisar"; texto "Você tem perguntas que passaram da data de revisão. Pendentes: {quantidade}. Não deixe a revisão acumular."; botão "Revisar agora".
+
+**Sem revisão pendente:** título "Sua prática de inglês está pendente"; texto "Alguns minutos hoje já mantêm o seu ritmo."; botão "Praticar agora".
+
+**Reengajamento (7 e 14 dias):** título "Sua prática de inglês está parada há {dias} dias"; texto "Sua atividade continua salva. Retome de onde parou."; botão "Retomar prática".
+
+**Rodapé:** "Prefere receber pelo WhatsApp? Cadastre seu número em Lembrete de prática, no menu da sua conta. Lá também dá pra mudar o horário ou desativar o lembrete."
 
 ### Resposta universal no WhatsApp
 

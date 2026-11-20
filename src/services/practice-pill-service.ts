@@ -16,7 +16,10 @@ import {
   findPendingQuestion,
   findUserQuestionById,
 } from "../repo/questions.repo";
-import { findUserById } from "../repo/users.repo";
+import { findUserActivityCreation, findUserById } from "../repo/users.repo";
+import { findPendingDocByUser } from "../repo/docs.repo";
+import { isActivityCreationInProgress } from "../core/activity-request";
+import { DOC_PENDING_TIMEOUT_MS } from "../lib/constants";
 
 async function findTodayLimitReached(userId: string): Promise<boolean> {
   const usage = await getTodayUsage(userId, startOfDay(new Date()));
@@ -56,15 +59,31 @@ export async function findPracticeActions(
   });
 }
 
+export async function isActivityBeingCreated(
+  userId: string,
+  now: Date,
+): Promise<boolean> {
+  const [{ activityCreatingAt }, pendingDoc] = await Promise.all([
+    findUserActivityCreation(userId),
+    findPendingDocByUser(userId),
+  ]);
+  const isMaterialProcessing =
+    pendingDoc !== null &&
+    now.getTime() - pendingDoc.createdAt.getTime() < DOC_PENDING_TIMEOUT_MS;
+  return isActivityCreationInProgress(activityCreatingAt, now) || isMaterialProcessing;
+}
+
 export async function findPracticePillState(
   userId: string,
 ): Promise<PracticePillState> {
-  const [activity, user, isLimitReached] = await Promise.all([
+  const [activity, user, isLimitReached, isCreating] = await Promise.all([
     findCurrentActivityByUser(userId),
     findUserById(userId),
     findTodayLimitReached(userId),
+    isActivityBeingCreated(userId, new Date()),
   ]);
-  const isTurnBusy = !!user && isTurnInProgress(user, Date.now());
+  const isTurnBusy =
+    isCreating || (!!user && isTurnInProgress(user, Date.now()));
   const practiceActions =
     activity && !isTurnBusy ? await findPracticeActions(activity, userId) : null;
   return resolvePracticePillState({

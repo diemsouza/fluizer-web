@@ -107,13 +107,14 @@ async function sendSubscriptionConfirmed(
 }
 
 // Idempotência pelo próprio valor: reenvio do mesmo invoice.paid encontra o
-// planExpiresAt já gravado e não reenvia a confirmação. A mensagem sai só na
-// primeira cobrança; renovação atualiza o acesso em silêncio.
+// planExpiresAt já gravado e não reenvia a confirmação. A mensagem sai quando
+// o acesso pago passa a valer (não estava pro ativo e dentro do prazo);
+// renovação com acesso vigente atualiza em silêncio.
 async function applyPaidPeriodToUser(
   userId: string,
   interval: SubscriptionInterval,
   renewsAt: Date,
-  shouldNotify: boolean,
+  billingReason: string | null,
 ): Promise<void> {
   const planExpiresAt = resolvePaidAccessEnd(renewsAt);
   const user = await findUserById(userId);
@@ -129,6 +130,13 @@ async function applyPaidPeriodToUser(
     return;
   }
 
+  const hadPaidAccess =
+    user.planCode === "pro" &&
+    user.planStatus === "active" &&
+    user.planExpiresAt !== null &&
+    user.planExpiresAt.getTime() > Date.now();
+  const shouldNotify = !hadPaidAccess;
+
   await updateUserPlan(userId, {
     planCode: "pro",
     planStatus: "active",
@@ -137,6 +145,8 @@ async function applyPaidPeriodToUser(
   console.log("[applyPaidPeriodToUser] plan updated", {
     userId,
     planExpiresAt,
+    billingReason,
+    shouldNotify,
   });
   if (!shouldNotify) return;
   await sendSubscriptionConfirmed(
@@ -171,7 +181,7 @@ export async function handleInvoicePaid(
     data.userId,
     data.interval,
     data.currentPeriodEnd,
-    invoice.billing_reason === "subscription_create",
+    invoice.billing_reason,
   );
 }
 

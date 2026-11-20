@@ -3,6 +3,7 @@ import { prisma } from "../lib/prisma";
 import {
   CheckoutData,
   UserActivityCreationMetadata,
+  UserIdentity,
   UserSignedLinkMetadata,
 } from "../types/domain";
 import type { ResolvedActivityRequest } from "../core/activity-request";
@@ -249,8 +250,6 @@ export async function updateUserLastResponse(
   });
 }
 
-export type UserIdentity = { phone: string } | { email: string };
-
 type NewUserData = {
   identity: UserIdentity;
   name?: string | null;
@@ -261,7 +260,9 @@ type NewUserData = {
   timezone?: string;
 };
 
-function findUserByIdentity(identity: UserIdentity): Promise<User | null> {
+export function findUserByIdentity(
+  identity: UserIdentity,
+): Promise<User | null> {
   return prisma.user.findUnique({ where: identity });
 }
 
@@ -377,7 +378,6 @@ export async function findUsersForDailyReminder(
       planStatus: "active",
       planExpiresAt: { gt: new Date() },
       activities: { some: { status: "active", deletedAt: null } },
-      phone: { not: null },
     },
     include: DAILY_REMINDER_USER_INCLUDE,
   });

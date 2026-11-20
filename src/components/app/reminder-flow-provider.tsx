@@ -3,7 +3,10 @@
 import { createContext, useCallback, useContext, useMemo, useState } from "react";
 import { useTranslations } from "next-intl";
 import { PhoneConfirmModal } from "@/src/components/shared/phone-confirm-modal";
-import { AddToCalendarModal } from "./add-to-calendar-modal";
+import {
+  AddToCalendarModal,
+  type ReminderChannel,
+} from "./add-to-calendar-modal";
 
 type ReminderFlowContextValue = {
   openReminder: () => void;
@@ -19,8 +22,9 @@ export function useReminderFlow(): ReminderFlowContextValue {
   return ctx;
 }
 
-// Lembrete sai pelo WhatsApp: conta sem número cadastra e confirma o número
-// antes, e o lembrete abre já ativado no horário da conta.
+// WhatsApp é o canal preferido do lembrete: conta sem número sempre vê antes o
+// cadastro do número. Confirmado, o lembrete abre já ativado no horário da
+// conta; recusado, abre do mesmo jeito e o lembrete chega por e-mail.
 export function ReminderFlowProvider({
   hasPhone,
   dailyReminderEnabled,
@@ -36,10 +40,12 @@ export function ReminderFlowProvider({
   const [phoneOpen, setPhoneOpen] = useState(false);
   const [reminderOpen, setReminderOpen] = useState(false);
   const [isPreset, setIsPreset] = useState(false);
+  const [channel, setChannel] = useState<ReminderChannel>("whatsapp");
 
   const openReminder = useCallback(() => {
     if (hasPhone) {
       setIsPreset(false);
+      setChannel("whatsapp");
       setReminderOpen(true);
       return;
     }
@@ -49,6 +55,14 @@ export function ReminderFlowProvider({
   function handlePhoneConfirmed(): void {
     setPhoneOpen(false);
     setIsPreset(true);
+    setChannel("whatsapp");
+    setReminderOpen(true);
+  }
+
+  function handleEmailChosen(): void {
+    setPhoneOpen(false);
+    setIsPreset(false);
+    setChannel("email");
     setReminderOpen(true);
   }
 
@@ -63,10 +77,15 @@ export function ReminderFlowProvider({
         title={t("phone_prompt_title")}
         subtitle={t("phone_prompt_subtitle")}
         onConfirmed={handlePhoneConfirmed}
+        secondaryAction={{
+          label: t("phone_prompt_email_option"),
+          onClick: handleEmailChosen,
+        }}
       />
       <AddToCalendarModal
         open={reminderOpen}
         onOpenChange={setReminderOpen}
+        channel={channel}
         dailyReminderEnabled={isPreset || dailyReminderEnabled}
         dailyReminderTime={dailyReminderTime}
         isPreset={isPreset}

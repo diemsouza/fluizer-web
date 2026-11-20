@@ -117,3 +117,12 @@ export class SupportDeliveryError extends SafeError {
     this.name = "SupportDeliveryError";
   }
 }
+
+export class ReminderEmailDeliveryError extends SafeError {
+  code = "REMINDER_EMAIL_DELIVERY_FAILED";
+
+  constructor(message = "Falha ao enviar o lembrete por e-mail.") {
+    super(message);
+    this.name = "ReminderEmailDeliveryError";
+  }
+}

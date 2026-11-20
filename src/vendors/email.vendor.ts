@@ -49,6 +49,7 @@ export const sendEmail = async ({
 
 export enum EmailTemplates {
   NOTIFICATION = "notification.hbs",
+  REMINDER = "reminder.hbs",
 }
 
 export interface NotificationEmailData {
@@ -58,12 +59,27 @@ export interface NotificationEmailData {
   url?: string;
 }
 
-interface SendMailTemplateProps {
-  to: string;
-  subject: string;
-  template: EmailTemplates;
-  data: NotificationEmailData;
+export interface ReminderEmailData {
+  title: string;
+  message: string;
+  buttonLabel: string;
+  url: string;
+  footer: string;
 }
+
+type SendMailTemplateProps =
+  | {
+      to: string;
+      subject: string;
+      template: EmailTemplates.NOTIFICATION;
+      data: NotificationEmailData;
+    }
+  | {
+      to: string;
+      subject: string;
+      template: EmailTemplates.REMINDER;
+      data: ReminderEmailData;
+    };
 
 export const sendEmailTemplateOrThrow = async ({
   to,

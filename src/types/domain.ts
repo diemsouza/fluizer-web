@@ -2,6 +2,7 @@ import { SubscriptionInterval } from "../lib/constants";
 import type { ResolvedActivityRequest } from "../core/activity-request";
 
 export type PlanCode = "trial" | "pro";
+export type UserIdentity = { phone: string } | { email: string };
 export type ChannelType = "whatsapp" | "web";
 export type MessageRole = "user" | "assistant";
 

@@ -3,7 +3,6 @@ import { Activity, Doc, DocType, Level, User } from "../lib/prisma";
 import {
   ActivityRequestControls,
   ResolvedActivityRequest,
-  isActivityCreationInProgress,
   isUnchangedSuggestion,
   resolveActivityRequest,
 } from "../core/activity-request";
@@ -16,11 +15,11 @@ import { validateContent } from "../core/validate-content";
 import {
   formatActivityCreationFailed,
   formatDocProcessed,
+  formatActivityCreating,
   formatDocReceiving,
 } from "../core/formatters";
 import {
   DEFAULT_MESSAGE_INTERVAL_SEC,
-  DOC_PENDING_TIMEOUT_MS,
   FIRST_MESSAGE_INTERVAL_MIN,
   MAX_ACTIVITIES_PER_DAY,
   NEXT_MESSAGE_INTERVAL_MIN,
@@ -33,7 +32,8 @@ import {
   generateFocusContent,
   generateTopicValidation,
 } from "../vendors/llm.vendor";
-import { createDoc, findPendingDocByUser } from "../repo/docs.repo";
+import { createDoc } from "../repo/docs.repo";
+import { isActivityBeingCreated } from "./practice-pill-service";
 import { createDocItem } from "../repo/doc-items.repo";
 import { saveMessage } from "../repo/messages.repo";
 import { findUserMediaTranscription } from "../repo/media.repo";
@@ -102,13 +102,7 @@ export async function checkCanCreateActivity(
     startOfDay(new Date()),
   );
   if (!canStartActivity(activityCount)) return { status: "daily_limit" };
-  const now = new Date();
-  const { activityCreatingAt } = await findUserActivityCreation(user.id);
-  const pendingDoc = await findPendingDocByUser(user.id);
-  const isMaterialProcessing =
-    pendingDoc !== null &&
-    now.getTime() - pendingDoc.createdAt.getTime() < DOC_PENDING_TIMEOUT_MS;
-  if (isActivityCreationInProgress(activityCreatingAt, now) || isMaterialProcessing) {
+  if (await isActivityBeingCreated(user.id, new Date())) {
     return { status: "already_creating" };
   }
   return null;
@@ -165,6 +159,11 @@ export async function createTextActivity(
   channel: MessageChannel,
 ): Promise<void> {
   try {
+    await sendAndSaveMessage({
+      channel,
+      userId,
+      message: formatActivityCreating(),
+    });
     const created = await generateAndCreateActivity(userId, request, channel);
     if (!created) await sendActivityCreationFailed(userId, channel);
   } catch (err) {
@@ -172,6 +171,7 @@ export async function createTextActivity(
     await sendActivityCreationFailed(userId, channel);
   } finally {
     await clearUserActivityCreating(userId);
+    await channel.notifyTypingStop(userId);
   }
 }
 
@@ -390,7 +390,11 @@ export async function startMaterialActivity(
     activityId: activity?.id,
     message: formatDocReceiving(),
   });
-  await mergeDoc(docId, userId, latestDocItemId, channel);
+  try {
+    await mergeDoc(docId, userId, latestDocItemId, channel);
+  } finally {
+    await channel.notifyTypingStop(userId);
+  }
 }
 
 // Imagem: o texto vem da transcricao gravada na extracao, nunca do cliente.
