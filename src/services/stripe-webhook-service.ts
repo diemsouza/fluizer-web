@@ -154,6 +154,8 @@ export async function handleInvoicePaid(
   if (!subscriptionId) {
     console.log("[handleInvoicePaid] invoice without subscription, skipping", {
       invoiceId: invoice.id,
+      customerId: resolveId(invoice.customer),
+      billingReason: invoice.billing_reason,
     });
     return;
   }

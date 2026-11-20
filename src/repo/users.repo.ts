@@ -330,7 +330,7 @@ async function findUserIdsMatchingCurrentSlot(
 ): Promise<string[]> {
   const rows = await prisma.$queryRaw<{ id: string }[]>`
     SELECT u.id
-    FROM users u
+    FROM public.users u
     WHERE to_char(
         date_trunc('hour', now() AT TIME ZONE u.timezone)
         + (floor(extract(minute from now() AT TIME ZONE u.timezone) / 30) * 30 || ' minutes')::interval,
@@ -338,7 +338,7 @@ async function findUserIdsMatchingCurrentSlot(
       ) = u.daily_reminder_time
       AND NOT EXISTS (
         SELECT 1
-        FROM notifications n
+        FROM public.notifications n
         WHERE n.user_id = u.id
           AND n.kind IN (${Prisma.join(reminderKinds)})
           AND n.deleted_at IS NULL

@@ -21,6 +21,11 @@ async function dispatchEvent(event: Stripe.Event): Promise<void> {
       return handleSubscriptionUpdated(event.data.object);
     case "customer.subscription.deleted":
       return handleSubscriptionDeleted(event.data.object);
+    default:
+      console.log("[post/api/webhooks/stripe] event type ignored", {
+        type: event.type,
+        eventId: event.id,
+      });
   }
 }
 
