@@ -57,7 +57,8 @@ export function RecordingBar({
       <WaveformBars
         heights={levels}
         barOpacity={0.85}
-        className="h-6 min-w-0 flex-1 text-foreground"
+        barClassName="flex-none w-[3px]"
+        className="h-6 min-w-0 flex-1 justify-between text-foreground"
       />
     </div>
   );

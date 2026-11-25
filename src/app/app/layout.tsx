@@ -71,7 +71,7 @@ export default async function AppLayout({
             <ProfileLevelProvider initialLevel={user.level}>
               <NewActivityProvider>
                 <SidebarProvider defaultOpen={defaultOpen}>
-                  <div className="flex h-[100dvh] w-full overflow-hidden">
+                  <div className="app-shell flex w-full overflow-hidden">
                     <AppSidebar
                       user={user}
                       activities={activities}

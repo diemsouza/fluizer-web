@@ -44,7 +44,9 @@ type UseVoiceRecorderResult = {
 
 const TICK_MS = 100;
 const LEVEL_TICK_MS = 75;
-const LEVEL_GAIN = 5;
+// Pico minimo da escala: sem ele o ruido de fundo antes da primeira fala
+// encheria as barras.
+const LEVEL_FLOOR = 0.02;
 // Rede de seguranca: se o MediaRecorder nunca disparar "stop", a UI nao pode
 // ficar presa no estado gravando.
 const STOP_FALLBACK_MS = 1500;
@@ -93,9 +95,19 @@ function readLevel(
   buffer: Float32Array<ArrayBuffer>,
 ): number {
   analyser.getFloatTimeDomainData(buffer);
-  let sum = 0;
-  for (let i = 0; i < buffer.length; i++) sum += buffer[i] * buffer[i];
-  return Math.min(1, Math.sqrt(sum / buffer.length) * LEVEL_GAIN);
+  let peak = 0;
+  for (let i = 0; i < buffer.length; i++) {
+    const value = Math.abs(buffer[i]);
+    if (value > peak) peak = value;
+  }
+  return peak;
+}
+
+// Mesma escala do player (pico / maior pico), para o desenho ao vivo bater com
+// o do audio enviado. No iOS sem cancelamento de eco o sinal chega baixo.
+function normalizeLevels(levels: number[], maxPeak: number): number[] {
+  const scale = Math.max(maxPeak, LEVEL_FLOOR);
+  return levels.map((level) => Math.min(1, level / scale));
 }
 
 export function useVoiceRecorder({
@@ -105,6 +117,7 @@ export function useVoiceRecorder({
   const [status, setStatus] = useState<VoiceRecorderStatus>("idle");
   const [elapsedMs, setElapsedMs] = useState(0);
   const [levels, setLevels] = useState<number[]>(silentLevels);
+  const [maxPeak, setMaxPeak] = useState(0);
 
   const statusRef = useRef<VoiceRecorderStatus>("idle");
   const streamRef = useRef<MediaStream | null>(null);
@@ -190,13 +203,9 @@ export function useVoiceRecorder({
     }, TICK_MS);
     const meter = setInterval(() => {
       const analyser = meterRef.current?.analyser;
-      if (!analyser) {
-        console.log("[DEBUG meter] sem analyser");
-        return;
-      }
+      if (!analyser) return;
       const level = readLevel(analyser, buffer);
-      const track = streamRef.current?.getAudioTracks()[0];
-      console.log("[DEBUG meter]", analyser.context.state, level.toFixed(3), track?.muted, track?.readyState);
+      setMaxPeak((prev) => Math.max(prev, level));
       setLevels((prev) => [...prev.slice(1), level]);
     }, LEVEL_TICK_MS);
     timersRef.current = [clock, meter];
@@ -236,6 +245,7 @@ export function useVoiceRecorder({
       startedAtRef.current = performance.now();
       setElapsedMs(0);
       setLevels(silentLevels());
+      setMaxPeak(0);
       updateStatus("recording");
       startTimers();
     },
@@ -305,7 +315,7 @@ export function useVoiceRecorder({
   return {
     status,
     elapsedMs,
-    levels,
+    levels: normalizeLevels(levels, maxPeak),
     isWarning: elapsedMs >= VOICE_WARN_SEC * 1000,
     start,
     finish,

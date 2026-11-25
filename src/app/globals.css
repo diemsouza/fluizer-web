@@ -41,6 +41,24 @@
   .cz-margin-vv {
     margin-bottom: var(--cz-vv-offset, 0px);
   }
+  .app-shell {
+    height: 100dvh;
+  }
+  /* iOS 26, app instalado com status bar black-translucent: innerHeight,
+     visualViewport e dvh descontam a status bar e sobra um vao embaixo; vh/lvh
+     tem a tela inteira. Com campo em foco (teclado aberto) nada disso vale e
+     a pagina fica como no navegador, que ja acompanha o teclado. */
+  @media (display-mode: standalone) {
+    html:has(.app-shell):not(:has(.app-shell :is(textarea, input):focus)),
+    html:has(.app-shell):not(:has(.app-shell :is(textarea, input):focus)) body,
+    html:not(:has(.app-shell :is(textarea, input):focus)) .app-shell {
+      height: 100lvh;
+    }
+    html:has(.app-shell):not(:has(.app-shell :is(textarea, input):focus)),
+    html:has(.app-shell):not(:has(.app-shell :is(textarea, input):focus)) body {
+      overflow: hidden;
+    }
+  }
   .scrollbar-hide {
     scrollbar-width: none;
     -ms-overflow-style: none;
