@@ -70,6 +70,8 @@ export type IncomingMessage = {
   mediaId?: string;
   mediaMetadata?: Record<string, string | number | null>;
   isVoiceNote?: boolean;
+  // Whisper confirmou fala em idioma diferente do esperado pela pergunta.
+  isVoiceLanguageMismatch?: boolean;
   // Id pre-gerado da mensagem quando a Media (audio) e criada antes dela.
   messageId?: string;
   // Id do botao clicado na web e da mensagem da lista a que ele pertence.

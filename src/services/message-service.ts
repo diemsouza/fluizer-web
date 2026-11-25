@@ -29,6 +29,7 @@ import {
   formatIntensiveModeActivated,
   formatFeedback,
   formatEvalTip,
+  formatAnswerLanguageMismatch,
   formatIntensiveModeStopped,
   formatGuideAfterFirstFeedback,
   formatCanceled,
@@ -101,6 +102,14 @@ import {
   isAnswerInKeys,
   isEvalTipClassAllowed,
 } from "../core/eval-tip";
+import {
+  canBlockAnswerLanguage,
+  clearLanguageBlockCount,
+  getExpectedAnswerLanguage,
+  incrementLanguageBlockCount,
+  isAnswerLanguageMismatch,
+  type AnswerLanguage,
+} from "../core/answer-language";
 import { calcSm2 } from "../core/sm2";
 import {
   applyImageMismatch,
@@ -835,6 +844,33 @@ export async function handleIncomingMessage(
                 return;
               }
 
+              const expectedLanguage = getExpectedAnswerLanguage(
+                pendingQuestion.questionFormat,
+              );
+              const canBlockLanguage =
+                !!expectedLanguage &&
+                canBlockAnswerLanguage(pendingQuestion.metadata);
+              const languageBlockParams = {
+                channel,
+                userId: user.id,
+                activityId: activeActivity.id,
+                question: pendingQuestion,
+                text,
+                input,
+                today,
+              };
+              if (
+                expectedLanguage &&
+                canBlockLanguage &&
+                input.isVoiceLanguageMismatch
+              ) {
+                await blockAnswerLanguage({
+                  ...languageBlockParams,
+                  expected: expectedLanguage,
+                });
+                return;
+              }
+
               const questionFormats = [
                 pendingQuestion.questionFormat,
               ] as QuestionFormat[];
@@ -896,6 +932,22 @@ export async function handleIncomingMessage(
                     }
                   : undefined,
               });
+              // Idioma errado nao e erro de conteudo: descarta a avaliacao e
+              // a pergunta segue pendente, sem SM-2 nem contadores.
+              if (
+                expectedLanguage &&
+                canBlockLanguage &&
+                isAnswerLanguageMismatch(
+                  evaluation?.answer_language,
+                  expectedLanguage,
+                )
+              ) {
+                await blockAnswerLanguage({
+                  ...languageBlockParams,
+                  expected: expectedLanguage,
+                });
+                return;
+              }
               const evalStatus = evaluation?.status ?? "wrong";
               const feedback = evaluation
                 ? formatFeedback(evaluation, activeActivity.userLevel, {
@@ -1005,7 +1057,7 @@ export async function handleIncomingMessage(
                       ),
                     }
                   : {}),
-                metadata: scoreMetadata,
+                metadata: clearLanguageBlockCount(scoreMetadata),
                 score: computeQuestionScore(scoreMetadata),
               });
               const hasClearedReviewQueue =
@@ -1666,6 +1718,40 @@ async function markOptionListSelection(params: {
     params.userId,
     buildAnsweredInteractive(params.interactive, params.selectedId),
   );
+}
+
+async function blockAnswerLanguage(params: {
+  channel: MessageChannel;
+  userId: string;
+  activityId: string;
+  question: Pick<Question, "id" | "metadata">;
+  expected: AnswerLanguage;
+  text: string;
+  input: IncomingMessage;
+  today: Date;
+}): Promise<void> {
+  const { channel, userId, activityId, question, expected, input, today } =
+    params;
+  await saveUserMsg({
+    userId,
+    content: params.text,
+    intent: "free_text",
+    input,
+    today,
+    activityId,
+  });
+  await updateQuestion(question.id, {
+    metadata: incrementLanguageBlockCount(question.metadata),
+  });
+  await sendAndSaveMessage({
+    channel,
+    userId,
+    activityId,
+    message: formatAnswerLanguageMismatch(expected),
+    intent: "answer_language_mismatch",
+    questionId: question.id,
+    today,
+  });
 }
 
 async function saveUserMsg(params: SaveUserMsgParams): Promise<Message> {

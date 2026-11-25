@@ -106,6 +106,16 @@ function missingParenthesizedTerm(question: string): boolean {
   return !PARENTHESIZED_TERM_RE.test(question);
 }
 
+const TRAILING_PUNCTUATION_RE = /^[\s.!?…,;:"'”»]*$/;
+
+function hasTextAfterParenthesis(question: string): boolean {
+  const lastClose = Math.max(
+    question.lastIndexOf(")"),
+    question.lastIndexOf("）"),
+  );
+  return !TRAILING_PUNCTUATION_RE.test(question.slice(lastClose + 1));
+}
+
 export function normalizeForMatch(text: string): string {
   return text
     .toLowerCase()
@@ -219,6 +229,15 @@ export function validateGeneratedQuestion(
     missingParenthesizedTerm(question.question)
   ) {
     const warning = `Pergunta de cenário descartada por não trazer o termo entre parênteses: Q: ${question.question} A: ${question.answerKeys}`;
+    console.warn(`[validateGeneratedQuestion] ${warning}`);
+    return warning;
+  }
+
+  if (
+    question.questionFormat === "scenario" &&
+    hasTextAfterParenthesis(question.question)
+  ) {
+    const warning = `Pergunta de cenário descartada por ter texto depois do parêntese, o parêntese deve ser o último elemento da situação: Q: ${question.question} A: ${question.answerKeys}`;
     console.warn(`[validateGeneratedQuestion] ${warning}`);
     return warning;
   }

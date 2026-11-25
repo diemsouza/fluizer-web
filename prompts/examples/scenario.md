@@ -1,19 +1,25 @@
 ## BASIC
 
 ### question
-fórmula: situação curta em PT (até 15 palavras), com o termo em PT entre parênteses no lugar exato onde a palavra em inglês entraria. Apenas a frase, sem pergunta, comando ou observação ao final.
+fórmula: situação curta em PT (até 15 palavras) que termina no termo em PT entre parênteses. O parêntese é o último elemento, nada depois dele além de pontuação. Apenas a frase, sem pergunta, comando ou observação ao final.
 
-nota: A resposta é sempre o primeiro termo de answerKeys, os demais são variações aceitas na avaliação e não influenciam a situação. O parêntese é a tradução literal desse primeiro termo e ocupa a posição sintática da palavra dentro da frase, nunca a descreve ao lado nem aparece como apêndice no fim. O limite de palavras é rígido. Se a situação não couber, simplifique o cenário até caber, nunca ultrapasse o limite. Em conectivos sem referente concreto (de qualquer forma, entretanto, embora), siga o terceiro exemplo, sem reescrever a frase com outra palavra no lugar. Nunca nomeie categoria gramatical. Se mais de um termo resolve a situação, adicione detalhe concreto até sobrar só um.
+nota: A resposta é sempre o primeiro termo de answerKeys, os demais são variações aceitas na avaliação e não influenciam a situação. O parêntese traz a tradução literal desse primeiro termo, sozinha ou dentro da fala, e faz parte da frase, nunca a descreve ao lado. A situação descreve o contexto e termina na fala, nunca dá ordem de fala ao usuário (diga, peça, avise, responda): o fechamento da pergunta já é a instrução. O limite de palavras é rígido. Se a situação não couber, simplifique o cenário até caber, nunca ultrapasse o limite. Em conectivos sem referente concreto (de qualquer forma, entretanto, embora), siga o terceiro exemplo, sem reescrever a frase com outra palavra no lugar. Nunca nomeie categoria gramatical. Se mais de um termo resolve a situação, adicione detalhe concreto até sobrar só um.
 
 exemplos:
-- Você esquece o (guarda-chuva) em casa e acaba se molhando todo no caminho.
-- Sua mãe pede pra você (lavar a louça) antes de sair com os amigos.
+- Começou a chover no caminho e você percebe que esqueceu o (guarda-chuva).
+- Seus amigos te chamam para sair, mas sua mãe manda você (lavar a louça).
 - Estava chovendo muito, mas você saiu (de qualquer forma).
+- O sistema bloqueou você e você fala com o suporte: (eu preciso de acesso)
+- Você explica ao amigo por que não vai à festa: (não vou, a menos que você vá comigo)
+
+exemplo ruim:
+- Diga (eu preciso de acesso) ao suporte.
 
 validação:
-- Situação toda em PT, com termo entre parêntese, sem nada após a frase.
-- O parêntese é a tradução literal do primeiro termo de answerKeys, não uma descrição, paráfrase ou explicação.
-- O parêntese está na posição exata em que a palavra em inglês entraria na frase.
+- Situação toda em PT, terminando no termo entre parêntese.
+- O parêntese traz a tradução literal do primeiro termo de answerKeys, sozinha ou dentro da fala, não uma descrição, paráfrase ou explicação.
+- O parêntese é o último elemento da situação, sem nada depois dele além de pontuação.
+- A situação não dá ordem de fala ao usuário (diga, peça, avise, responda).
 - O termo em inglês não aparece em nenhum ponto da situação.
 - A situação aponta para um único termo possível.
 - O termo em parêntese deve aparecer na situação, nunca na pergunta final.
@@ -23,7 +29,7 @@ validação:
 ### feedback
 fórmula: a mesma situação da pergunta, dita em EN simples, com o termo de right_answer.
 
-nota: Nunca crie cenário novo nem acrescente elementos que não estavam nele. Grafia idêntica à de right_answer. O corpo do feedback não varia por status, apenas a abertura, resolvida fora deste prompt. Banda de nível A1-A2: em vez de traduzir todos os detalhes, mantenha só o essencial da situação, em até 8 palavras e com vocabulário elementar.
+nota: Nunca crie cenário novo nem acrescente elementos que não estavam nele. A frase narra a situação, nunca é imperativa dirigida ao usuário. Grafia idêntica à de right_answer. O corpo do feedback não varia por status, apenas a abertura, resolvida fora deste prompt. Banda de nível A1-A2: em vez de traduzir todos os detalhes, mantenha só o essencial da situação, em até 8 palavras e com vocabulário elementar.
 
 exemplo (late):
 - She showed up late and missed the introduction.
@@ -36,6 +42,7 @@ exemplo (anyway):
 
 validação:
 - A frase de uso emprega o termo, nunca o define ou o explica.
+- A frase narra a situação, nunca é uma ordem no imperativo dirigida ao usuário.
 - Não pode ser reescrita como "X significa Y" ou "X refere-se a Y".
 - A frase resume a situação da pergunta, nunca cria uma nova.
 - Se qualquer critério falhar, gere outro feedback com a correção.
@@ -43,19 +50,25 @@ validação:
 ## INTERMEDIATE
 
 ### question
-fórmula: situação em EN A2-B1 (até 15 palavras), com o termo em PT entre parênteses no lugar exato onde a palavra em inglês entraria. Apenas a frase, sem pergunta, comando ou observação ao final.
+fórmula: situação em EN A2-B1 (até 15 palavras) que termina no termo em PT entre parênteses. O parêntese é o último elemento, nada depois dele além de pontuação. Apenas a frase, sem pergunta, comando ou observação ao final.
 
-nota: A resposta é sempre o primeiro termo de answerKeys, os demais são variações aceitas na avaliação e não influenciam a situação. O parêntese é a tradução literal desse primeiro termo e ocupa a posição sintática da palavra dentro da frase, nunca a descreve ao lado nem aparece como apêndice no fim. Fora do parêntese, nenhuma palavra em português. A frase de estímulo fica um passo abaixo do termo em foco, o esforço do aluno é o termo, não decodificar a frase ao redor. O limite de palavras é rígido. A situação é uma única frase, nunca duas orações separadas por ponto. Se a situação não couber, simplifique o cenário até caber, nunca ultrapasse o limite. Em conectivos sem referente concreto (anyway, however, although, instead, unless), siga o terceiro exemplo, sem reescrever a frase com outra palavra no lugar. Nunca nomeie categoria gramatical. Se mais de um termo resolve a situação, adicione detalhe concreto até sobrar só um.
+nota: A resposta é sempre o primeiro termo de answerKeys, os demais são variações aceitas na avaliação e não influenciam a situação. O parêntese traz a tradução literal desse primeiro termo, sozinha ou dentro da fala, e faz parte da frase, nunca a descreve ao lado. A situação descreve o contexto e termina na fala, nunca dá ordem de fala ao usuário (diga, peça, avise, responda): o fechamento da pergunta já é a instrução. Fora do parêntese, nenhuma palavra em português. A frase de estímulo fica um passo abaixo do termo em foco, o esforço do aluno é o termo, não decodificar a frase ao redor. O limite de palavras é rígido. A situação é uma única frase, nunca duas orações separadas por ponto. Se a situação não couber, simplifique o cenário até caber, nunca ultrapasse o limite. Em conectivos sem referente concreto (anyway, however, although, instead, unless), siga o terceiro exemplo, sem reescrever a frase com outra palavra no lugar. Nunca nomeie categoria gramatical. Se mais de um termo resolve a situação, adicione detalhe concreto até sobrar só um.
 
 exemplos:
-- You forgot your (guarda-chuva) at home and got soaked walking to work.
-- Your mom asked you to (lavar a louça) before going out tonight.
+- It started raining on the way and you realized you forgot your (guarda-chuva).
+- Your friends invited you out, but your mom told you to (lavar a louça).
 - It was raining hard, but you went out (de qualquer forma).
+- The system locked you out, so you call support: (eu preciso de acesso)
+- You explain to a friend why you're skipping the party: (não vou, a menos que você vá comigo)
+
+exemplo ruim:
+- Tell support (eu preciso de acesso).
 
 validação:
-- Situação toda em EN com termo em PT entre parêntese, sem nada após a frase.
-- O parêntese é a tradução literal do primeiro termo de answerKeys, não uma descrição, paráfrase ou explicação.
-- O parêntese está na posição exata em que a palavra em inglês entraria na frase.
+- Situação toda em EN, terminando no termo em PT entre parêntese.
+- O parêntese traz a tradução literal do primeiro termo de answerKeys, sozinha ou dentro da fala, não uma descrição, paráfrase ou explicação.
+- O parêntese é o último elemento da situação, sem nada depois dele além de pontuação.
+- A situação não dá ordem de fala ao usuário (diga, peça, avise, responda).
 - O termo em inglês não aparece em nenhum ponto da situação.
 - A situação aponta para um único termo possível.
 - O termo em parêntese deve aparecer na situação, nunca na pergunta final.
@@ -65,7 +78,7 @@ validação:
 ### feedback
 fórmula: a mesma situação da pergunta, dita em EN, com o termo de right_answer no lugar do parêntese.
 
-nota: Nunca crie cenário novo nem acrescente elementos que não estavam nele. Grafia idêntica à de right_answer. O corpo do feedback não varia por status, apenas a abertura, resolvida fora deste prompt.
+nota: Nunca crie cenário novo nem acrescente elementos que não estavam nele. A frase narra a situação, nunca é imperativa dirigida ao usuário. Grafia idêntica à de right_answer. O corpo do feedback não varia por status, apenas a abertura, resolvida fora deste prompt.
 
 exemplo (exhausted):
 - He felt exhausted after the double shift at work.
@@ -78,6 +91,7 @@ exemplo (give up):
 
 validação:
 - A frase de uso emprega o termo, nunca o define ou o explica.
+- A frase narra a situação, nunca é uma ordem no imperativo dirigida ao usuário.
 - Não pode ser reescrita como "X significa Y" ou "X refere-se a Y".
 - A frase é a mesma da pergunta gerada, com a lacuna preenchida, nunca uma frase nova.
 - Se qualquer critério falhar, gere outro feedback com a correção.
@@ -85,20 +99,26 @@ validação:
 ## ADVANCED
 
 ### question
-fórmula: situação em EN B1-B2 (até 15 palavras), com o termo em PT entre parênteses no lugar exato onde a palavra em inglês entraria. Apenas a frase, sem pergunta, comando ou observação ao final.
+fórmula: situação em EN B1-B2 (até 15 palavras) que termina no termo em PT entre parênteses. O parêntese é o último elemento, nada depois dele além de pontuação. Apenas a frase, sem pergunta, comando ou observação ao final.
 
-nota: A resposta é sempre o primeiro termo de answerKeys, os demais são variações aceitas na avaliação e não influenciam a situação. O parêntese é a tradução literal desse primeiro termo e ocupa a posição sintática da palavra dentro da frase, nunca a descreve ao lado nem aparece como apêndice no fim. Fora do parêntese, nenhuma palavra em português. A frase de estímulo fica um passo abaixo do termo em foco, o esforço do aluno é o termo, não decodificar a frase ao redor. O limite de palavras é rígido. A situação é uma única frase, nunca duas orações separadas por ponto. Se a situação não couber, simplifique o cenário até caber, nunca ultrapasse o limite. Em conectivos sem referente concreto (anyway, however, although, instead, unless), siga o terceiro exemplo, sem reescrever a frase com outra palavra no lugar, e quando o conectivo normalmente abre a frase, o parêntese pode vir no início. Nunca nomeie categoria gramatical. Se mais de um termo resolve a situação, adicione detalhe concreto até sobrar só um.
+nota: A resposta é sempre o primeiro termo de answerKeys, os demais são variações aceitas na avaliação e não influenciam a situação. O parêntese traz a tradução literal desse primeiro termo, sozinha ou dentro da fala, e faz parte da frase, nunca a descreve ao lado. A situação descreve o contexto e termina na fala, nunca dá ordem de fala ao usuário (diga, peça, avise, responda): o fechamento da pergunta já é a instrução. Fora do parêntese, nenhuma palavra em português. A frase de estímulo fica um passo abaixo do termo em foco, o esforço do aluno é o termo, não decodificar a frase ao redor. O limite de palavras é rígido. A situação é uma única frase, nunca duas orações separadas por ponto. Se a situação não couber, simplifique o cenário até caber, nunca ultrapasse o limite. Em conectivos sem referente concreto (anyway, however, although, instead, unless), siga o terceiro exemplo, sem reescrever a frase com outra palavra no lugar. Nunca nomeie categoria gramatical. Se mais de um termo resolve a situação, adicione detalhe concreto até sobrar só um.
 
 exemplos:
-- You forgot your (guarda-chuva) at home, so you ended up soaked by the time you got to the office.
-- Your mom asked you to (lavar a louça) before heading out, but you were already running late.
-- (Apesar de) the rain, you decided to go for a long walk in the park.
+- Halfway to the office the sky opened up, and you realized you'd left your (guarda-chuva).
+- You were already running late, but your mom insisted that you (lavar a louça).
+- The forecast promised heavy rain all day, but you went for a long walk (de qualquer forma).
+- The system locked you out right before the deadline, so you message support: (eu preciso de acesso)
+- You explain to a friend why you're skipping the party: (não vou, a menos que você vá comigo)
+
+exemplo ruim:
+- Tell support (eu preciso de acesso) before the deadline.
 
 validação:
-- Situação toda em EN com termo em PT entre parêntese, sem nada após a frase.
-- O parêntese é a tradução literal do primeiro termo de answerKeys, não uma descrição, paráfrase ou explicação.
-- O parêntese está na posição exata em que a palavra em inglês entraria na frase.
-- O termo em inglês não aparece em nenhum ponto da situação, incluindo a oração que vem antes ou depois do parêntese na mesma frase de duas cláusulas.
+- Situação toda em EN, terminando no termo em PT entre parêntese.
+- O parêntese traz a tradução literal do primeiro termo de answerKeys, sozinha ou dentro da fala, não uma descrição, paráfrase ou explicação.
+- O parêntese é o último elemento da situação, sem nada depois dele além de pontuação.
+- A situação não dá ordem de fala ao usuário (diga, peça, avise, responda).
+- O termo em inglês não aparece em nenhum ponto da situação, incluindo a oração que vem antes do parêntese na mesma frase de duas cláusulas.
 - A situação aponta para um único termo possível.
 - O termo em parêntese deve aparecer na situação, nunca na pergunta final.
 - Situação com no máximo 15 palavras, sem contar termo em parêntese.
@@ -107,7 +127,7 @@ validação:
 ### feedback
 fórmula: a mesma situação da pergunta, dita em EN, com o termo de right_answer no lugar do parêntese.
 
-nota: Nunca crie cenário novo nem acrescente elementos que não estavam nele. Grafia idêntica à de right_answer. O corpo do feedback não varia por status, apenas a abertura, resolvida fora deste prompt.
+nota: Nunca crie cenário novo nem acrescente elementos que não estavam nele. A frase narra a situação, nunca é imperativa dirigida ao usuário. Grafia idêntica à de right_answer. O corpo do feedback não varia por status, apenas a abertura, resolvida fora deste prompt.
 
 exemplo (reluctant):
 - She was reluctant to accept the offer after the delay.
@@ -120,6 +140,7 @@ exemplo (bite the bullet):
 
 validação:
 - A frase de uso emprega o termo, nunca o define ou o explica.
+- A frase narra a situação, nunca é uma ordem no imperativo dirigida ao usuário.
 - Não pode ser reescrita como "X significa Y" ou "X refere-se a Y".
 - A frase é a mesma da pergunta gerada, com a lacuna preenchida, nunca uma frase nova.
 - Se qualquer critério falhar, gere outro feedback com a correção.

@@ -55,6 +55,34 @@ export const EVAL_TIP_CLASSES_BY_FORMAT: Record<
   ],
 };
 
+// Idioma esperado da resposta. choice e image_recognition sao opcoes (botao,
+// numero ou texto da opcao) e ficam fora da validacao de idioma.
+export const ANSWER_LANGUAGE_BY_FORMAT: Record<
+  QuestionFormat,
+  "en" | "pt" | null
+> = {
+  gap_fill: "en",
+  recall: "en",
+  scenario: "en",
+  image_transcription: "en",
+  audio_transcription: "en",
+  recall_inverted: "pt",
+  audio_translation: "pt",
+  choice: null,
+  image_recognition: null,
+  open_text: null,
+  open_question: null,
+};
+// Bloqueios por idioma errado na mesma pergunta; a tentativa seguinte avalia
+// normalmente para o aluno nunca ficar preso.
+export const ANSWER_LANGUAGE_MAX_BLOCKS = 2;
+// Resposta curta derruba a deteccao do Whisper: abaixo disso nunca bloqueia.
+export const VOICE_LANGUAGE_MIN_WORDS = 3;
+// Quanto a passada forcada no idioma esperado pode ficar abaixo da automatica
+// (avg_logprob) e ainda ser aceita como a fala real. Calibrar com
+// Media.metadata.languageCheck.
+export const VOICE_LANGUAGE_LOGPROB_MARGIN = 0.4;
+
 export const THEME_COLOR_LIGHT = "#ffffff";
 export const THEME_COLOR_DARK = "#0a0a0a";
 

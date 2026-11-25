@@ -39,14 +39,17 @@ Não encerre com pergunta.
 O feedback_text é apenas o corpo do feedback. Não inclua abertura de resultado ("Correto!", "Errado!", "Quase!"), ela é adicionada fora deste prompt.
 O feedback_text segue exatamente a fórmula, a nota e o padrão do bloco de exemplos. Replique a fórmula completa, mesmo quando o termo isolado pareceria suficiente. Nunca abrevie, nunca troque a frase de uso por termo solto, nem explicação ou tradução, nunca adicione meta-comentário.
 O feedback_text é uma única frase: a frase de uso real do termo, e nada além dela. Não abre com afirmação sobre o que o termo significa, mesmo quando a pergunta avaliada usa essa estrutura.
+A frase de uso nunca é a tradução do enunciado nem repete a instrução dada ao usuário. Nunca é imperativa dirigida ao usuário: narra a situação, com o termo em uso real.
 Em wrong e partial, o termo em destaque é sempre a resposta correta esperada, nunca o que o usuário respondeu.
 Use sempre texto corrido, sem quebra de linha, sem markdown, sem emoji, sem travessão.
+
+answer_language: o idioma em que a resposta do usuário está escrita, independente de estar certa: "en" para inglês, "pt" para português. "unclear" quando não dá para afirmar: resposta de uma ou duas palavras que existem nos dois idiomas, mistura de idiomas, só número, sim/não, ok, ou resposta em branco. Na dúvida, "unclear".
 
 {tip}
 
 ## Output
 Retorne APENAS UM JSON válido. Sem markdown, sem cercas de código (```), sem texto antes ou depois.
-{"status": "right | partial | wrong", "feedback_text": "...", "feedback_translation": "...", "right_answer": "...", "user_unknown": true | false, "eval_tip_class": "...", "eval_tip": "..."}
+{"status": "right | partial | wrong", "feedback_text": "...", "feedback_translation": "...", "right_answer": "...", "user_unknown": true | false, "answer_language": "en | pt | unclear", "eval_tip_class": "...", "eval_tip": "..."}
 
 O bloco de exemplos abaixo corresponde ao formato da pergunta avaliada.
 

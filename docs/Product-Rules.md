@@ -173,10 +173,12 @@ Na web, o usuário pode responder por áudio gravado no próprio composer. Com o
 - **Envio:** otimista. A bolha do usuário aparece na hora com o player, e "Enviando" fica embaixo até o arquivo ser recebido. Se falhar, a bolha fica apagada com "Não foi enviado." e "Tentar de novo", pelo mesmo mecanismo de reenvio das demais mensagens.
 - **Permissão:** o primeiro pedido é sempre o do próprio navegador. A tela do produto ("Libere o microfone", com o passo a passo da plataforma) só aparece quando o acesso é negado. O passo a passo muda por plataforma: iPhone no navegador, iPhone com o app salvo na tela de início (fechar o Fluizer na troca de apps e abrir de novo), Android no navegador, Android com o app instalado (liberar o microfone do site no Chrome e reabrir), Safari no Mac e demais navegadores de computador; "Entendi" fecha e leva ao campo de texto. Sem microfone ou microfone em uso por outro app geram um aviso curto, sem tela.
 - **Avaliação:** o áudio é transcrito e a transcrição segue exatamente o caminho de uma resposta digitada: mesma avaliação, mesmo feedback, mesmo SM-2 e mesma nota, com o bônus de resposta por áudio (Seção 6.3).
+- **Idioma da transcrição:** a transcrição sai sempre no idioma falado, nunca traduzida, com detecção automática (sem travar em inglês, porque há formatos que esperam português). Com sotaque, a detecção pode errar e devolver a fala já traduzida; por isso, quando o idioma detectado difere do esperado pela pergunta pendente, o áudio é transcrito de novo forçando o idioma esperado. Se essa segunda versão é tão provável quanto a primeira, vale ela (o aluno falou o idioma esperado). Se é bem menos provável, a fala estava mesmo no outro idioma e entra na validação de idioma abaixo. O idioma detectado e a comparação ficam registrados junto do áudio.
 - **Áudio sem fala:** transcrição sem nenhuma letra (silêncio, ruído) não chega à avaliação. A mensagem fica salva com o áudio, volta "Não deu para ouvir o áudio. Grave de novo ou responda digitando." e a pergunta continua pendente.
 - **Transcrição de áudio:** continua exigindo resposta digitada (Seção 4); voz nela não é avaliada. Tradução de áudio e transcrição de imagem aceitam voz normalmente.
 - Fora de uma pergunta pendente, a transcrição é tratada como texto digitado.
 - **Voz nunca é comando:** comando exige a barra (Seção 9) e a transcrição não traz barra. Falar "ajuda" é resposta da pergunta, como digitar "ajuda" sem barra.
+- **Validação de idioma:** roda antes da avaliação, depois de resolvidos os comandos (que nunca entram nela). O idioma esperado vem do formato da pergunta: português no recall invertido e na tradução de áudio, inglês nos demais; múltipla escolha e reconhecimento por imagem ficam fora. Na voz, vale o idioma confirmado pela transcrição; no texto (e na transcrição que passou), a própria avaliação informa o idioma da resposta. Se ele diverge do esperado, a avaliação é descartada: volta "Essa resposta veio em português. Responda em inglês para continuar." (ou o inverso), a pergunta continua pendente, sem SM-2, contadores ou avanço. Só bloqueia com detecção confiante: resposta curta, mista ou ambígua ("yes", "ok", número) segue para a avaliação, porque bloquear uma resposta certa é pior que deixar passar. Teto de 2 bloqueios por tentativa: na terceira, avalia normalmente. Depois de avaliada, o contador zera.
 - **Ver transcrição:** abaixo do áudio do usuário, no mesmo formato do "Ver tradução" (abre e fecha), mostra o texto transcrito. Só aparece quando a transcrição fica pronta, sem recarregar a página, e nunca em áudio sem fala.
 
 ---
@@ -210,6 +212,13 @@ Nove formatos em uso ativo, todos de vocabulário: hoje todo material vira uma l
 | transcrição de imagem | Uma cena mostra o termo como elemento central e o usuário responde em inglês o que vê, guiado por uma pergunta |
 
 O prefixo "Complete:" do gap fill e a pergunta de fechamento do cenário não vêm mais do modelo — são aplicados depois, de forma determinística. Isso elimina falha de formatação (prefixo esquecido, fechamento reformulado ou fora do padrão). O fechamento do cenário hoje sorteia entre 4 variações em português e 4 em inglês, em vez de repetir sempre a mesma frase.
+
+**Cenário: parêntese no fim.** No cenário, o parêntese é o último elemento do texto, sem nada depois dele além de pontuação. Com texto depois do parêntese, o fechamento ("como você diria essa parte") fica ambíguo: só o parêntese ou o parêntese mais o resto. A regra é validada na geração, e a pergunta que a quebra é gerada de novo. O termo pode ficar no meio do parêntese, que pode trazer a fala inteira, o que permite termos que pedem complemento (ex: "Você explica por que não vai à festa: (não vou, a menos que você vá comigo)").
+
+**Cenário: situação sem ordem de fala.** O cenário descreve uma situação e termina na fala, nunca dá uma ordem de fala ao usuário. O fechamento já é uma instrução, e o cenário não pode empilhar outra.
+- Bom: "O sistema bloqueou você e você fala com o suporte: (eu preciso de acesso)"
+- Bom: "Você está preso no trânsito e avisa seu chefe: (estou atrasado)"
+- Ruim: "Diga (eu preciso de acesso) ao suporte"
 
 ### Reconhecimento por imagem
 
@@ -298,6 +307,7 @@ Avaliado contra as respostas esperadas geradas na criação da atividade. Tom di
 - Explicar o significado óbvio do termo
 - Traduzir o termo
 - Repetir ou parafrasear a pergunta
+- Traduzir o enunciado ou repetir a instrução dada ao usuário: a frase de uso nunca é imperativa dirigida ao usuário, narra a situação com o termo em uso real
 - Encerrar com pergunta
 - Usar travessão como separador
 
@@ -321,7 +331,7 @@ O feedback pode ser acompanhado de uma dica curta, enviada como mensagem separad
 
 **Em erro ou parcial**, a dica pode apontar a causa específica do erro. A causa é classificada em uma de nove categorias: calque (tradução literal de estrutura), sinônimo próximo incorreto, estrutura (padrão gramatical confundido), colocação (combinação de palavras que não se usa junto em inglês), expressão interpretada ao pé da letra, registro (formal/informal fora de lugar), forma da palavra (ideia ou raiz certa na forma errada para a frase, como "bored" no lugar de "boring"), ortografia, ou sem classificação. Ortografia aqui é só erro de digitação, sem regra a aprender; forma escrita que segue regra fixa do inglês ("can not" no lugar de "cannot", junto ou separado, forma curta) conta como estrutura e gera dica, podendo citar as outras formas válidas da mesma regra ("cannot" e "can't"). Ortografia e sem classificação não geram dica, o campo fica vazio nesses casos, não só no caso de chute sem padrão identificável.
 
-**Em acerto**, a frase de uso do feedback usa a forma que o usuário escreveu, nunca a troca pela forma esperada. Quando existe uma resposta esperada diferente dessa forma, a dica a apresenta, com um uso em inglês. Isso cobre dois casos: o usuário respondeu uma das respostas esperadas e a pergunta tem outra, ou a resposta foi aceita por equivalência e a esperada é outra forma. É complemento, nunca ressalva sobre a resposta dada. Só vale quando:
+**Em acerto**, a frase de uso do feedback usa a forma que o usuário escreveu, nunca a troca pela forma esperada. Quando existe uma resposta esperada diferente dessa forma, a dica a apresenta: em inglês, com um uso diferente da frase do feedback; em português, sozinha ("Você também poderia usar **voltar**"). Isso cobre dois casos: o usuário respondeu uma das respostas esperadas e a pergunta tem outra, ou a resposta foi aceita por equivalência e a esperada é outra forma. É complemento, nunca ressalva sobre a resposta dada. Só vale quando:
 
 - o formato é de resposta digitada (recall, recall invertido, gap fill e cenário), nunca em múltipla escolha ou reconhecimento por imagem, que já têm opções fechadas, nem nos formatos de escuta (transcrição e tradução de áudio) ou na transcrição de imagem;
 - a alternativa vem das respostas esperadas da própria pergunta, citada literalmente, nunca inventada na avaliação;
@@ -334,6 +344,10 @@ Sem alternativa assim, o acerto segue sem dica.
 **Na tradução de áudio**, valem só as classes que fazem sentido de inglês para português: calque, sinônimo próximo, expressão ao pé da letra, registro e estrutura. Colocação e forma da palavra ficam de fora, junto com as classes de escuta; ortografia e sem classificação seguem sem dica. O filtro por formato fica no código, como o da dica em acerto. O objetivo é que a dica em acerto seja pontual, não presença em toda resposta certa.
 
 O prompt de avaliação não conhece o formato nem decide sozinho o envio: o filtro final fica no código. Em acerto, a dica só é enviada se a classe retornada for alternativa, o formato for um dos quatro de resposta digitada e o texto da dica citar uma resposta esperada diferente da que o usuário escreveu. Fora disso a dica é descartada, inclusive o texto. A dica em acerto não altera status nem nota da pergunta, e a ordem de envio é a mesma: feedback, áudio (se houver) e dica. O acerto com termo fora das respostas esperadas tem efeito próprio no agendamento de revisão, descrito na Seção 7, independente de a dica ser enviada.
+
+**Uso em inglês na dica:** quando a dica traz um uso ("como em ..."), ele mostra a mesma construção em outro contexto (outro verbo, outra situação), nunca repete o termo que a dica já cita, a resposta do usuário ou a pergunta. Sem variação útil, a dica sai sem o uso.
+
+**Nível da dica:** a redação da dica acompanha o nível do usuário (Seção 5). No básico, a dica não usa termos de análise gramatical (objeto, substantivo, verbo, sujeito, predicado, preposição) e explica pelo uso. Ex: em vez de "como verbo, access precisa de um objeto; aqui, access é o substantivo", o básico recebe "access sozinho já quer dizer acesso; com to access você precisa dizer acessar o quê". Intermediário e avançado seguem com linguagem de aluno, sem nomenclatura gramatical.
 
 O texto da dica segue uma marcação própria: negrito para a forma contrastada, itálico para um termo curto em inglês, aspas duplas para uma frase completa em inglês, riscado só para uma forma que não existe em inglês. Cada dica usa só a marcação que fizer sentido para o caso.
 

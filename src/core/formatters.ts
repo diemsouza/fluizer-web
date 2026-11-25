@@ -31,6 +31,7 @@ import type {
 import type { GeneratedDocMetadata } from "../types/domain";
 import type { EngagementReminder } from "./engagement-reminder";
 import { buildActivityReadyText } from "./activity-ready";
+import type { AnswerLanguage } from "./answer-language";
 import { isDomainId } from "./activity-request";
 import ptMessages from "../locales/pt.json";
 
@@ -1053,6 +1054,20 @@ function formatAudioQuestion(
 export function formatVoiceNoteInaudible(): FormattedMessage {
   return {
     text: "Não foi possível ouvir o áudio. Grave de novamente ou responda digitando.",
+  };
+}
+
+const ANSWER_LANGUAGE_NAMES: Record<AnswerLanguage, string> = {
+  en: "inglês",
+  pt: "português",
+};
+
+export function formatAnswerLanguageMismatch(
+  expected: AnswerLanguage,
+): FormattedMessage {
+  const wrong = expected === "en" ? "pt" : "en";
+  return {
+    text: `Essa resposta veio em ${ANSWER_LANGUAGE_NAMES[wrong]}. Responda em ${ANSWER_LANGUAGE_NAMES[expected]} para continuar.`,
   };
 }
 

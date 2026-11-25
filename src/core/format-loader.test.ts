@@ -46,3 +46,44 @@ describe("validateGeneratedQuestion enunciado vazio", () => {
     }
   });
 });
+
+describe("validateGeneratedQuestion parêntese no fim do cenário", () => {
+  const scenario = (question: string): SectionQuestionResult =>
+    buildQuestion({
+      question,
+      questionFormat: QuestionFormat.scenario,
+      answerKeys: ["I need access"],
+      term: "I need access",
+    });
+
+  it("rejeita texto depois do parêntese", () => {
+    vi.spyOn(console, "warn").mockImplementation(() => undefined);
+    const result = validateGeneratedQuestion(
+      scenario(
+        "O sistema bloqueou você; diga (eu preciso de acesso) ao suporte.",
+      ),
+    );
+    expect(result).toContain("texto depois do parêntese");
+  });
+
+  it("aceita parêntese no fim, com ou sem pontuação", () => {
+    const questions = [
+      "O sistema bloqueou você e você fala com o suporte: (eu preciso de acesso)",
+      "Você explica por que não vai à festa: (não vou, a menos que você vá comigo).",
+      "Estava chovendo muito, mas você saiu (de qualquer forma).",
+    ];
+    for (const question of questions) {
+      expect(validateGeneratedQuestion(scenario(question))).toBeUndefined();
+    }
+  });
+
+  it("não se aplica a outros formatos", () => {
+    const result = validateGeneratedQuestion(
+      buildQuestion({
+        question: "Como se diz (esperando) em inglês?",
+        questionFormat: QuestionFormat.recall,
+      }),
+    );
+    expect(result).toBeUndefined();
+  });
+});

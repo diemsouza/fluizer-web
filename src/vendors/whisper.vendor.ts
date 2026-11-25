@@ -1,13 +1,58 @@
 import { audioExtensionForMime } from "../core/voice-note";
+import type { AnswerLanguage } from "../core/answer-language";
 
-type TranscribeResult = { text: string; duration: number | null; format: string }
+type TranscribeResult = {
+  text: string;
+  duration: number | null;
+  format: string;
+  language: AnswerLanguage | null;
+  avgLogprob: number | null;
+};
 
-export async function transcribeAudio(buffer: Buffer, mimeType: string): Promise<TranscribeResult> {
+type TranscribeOptions = { language?: AnswerLanguage };
+
+type WhisperSegment = { avg_logprob?: number; start?: number; end?: number };
+
+type WhisperResponse = {
+  text: string;
+  duration?: number;
+  language?: string;
+  segments?: WhisperSegment[];
+};
+
+// verbose_json devolve o idioma por extenso ("english"), nunca o codigo ISO.
+const WHISPER_LANGUAGE_NAMES: Record<string, AnswerLanguage> = {
+  english: "en",
+  portuguese: "pt",
+};
+
+function averageLogprob(segments: WhisperSegment[] | undefined): number | null {
+  const scored = (segments ?? []).filter(
+    (s): s is Required<WhisperSegment> =>
+      typeof s.avg_logprob === "number" &&
+      typeof s.start === "number" &&
+      typeof s.end === "number",
+  );
+  const totalDuration = scored.reduce((sum, s) => sum + (s.end - s.start), 0);
+  if (totalDuration <= 0) return null;
+  const weighted = scored.reduce(
+    (sum, s) => sum + s.avg_logprob * (s.end - s.start),
+    0,
+  );
+  return weighted / totalDuration;
+}
+
+export async function transcribeAudio(
+  buffer: Buffer,
+  mimeType: string,
+  options: TranscribeOptions = {},
+): Promise<TranscribeResult> {
   const ext = audioExtensionForMime(mimeType);
   const formData = new FormData();
   formData.append("file", new Blob([new Uint8Array(buffer)], { type: mimeType }), `audio.${ext}`);
   formData.append("model", "whisper-1");
   formData.append("response_format", "verbose_json");
+  if (options.language) formData.append("language", options.language);
 
   const res = await fetch("https://api.openai.com/v1/audio/transcriptions", {
     method: "POST",
@@ -20,6 +65,12 @@ export async function transcribeAudio(buffer: Buffer, mimeType: string): Promise
     throw new Error(`Whisper API error ${res.status}: ${detail}`);
   }
 
-  const data = (await res.json()) as { text: string; duration?: number };
-  return { text: data.text, duration: data.duration ?? null, format: ext };
+  const data = (await res.json()) as WhisperResponse;
+  return {
+    text: data.text,
+    duration: data.duration ?? null,
+    format: ext,
+    language: WHISPER_LANGUAGE_NAMES[data.language?.toLowerCase() ?? ""] ?? null,
+    avgLogprob: averageLogprob(data.segments),
+  };
 }

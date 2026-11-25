@@ -47,18 +47,24 @@ Em right:
 
 eval_tip: dica curta em PT, escrita a partir da classe acima, em frase corrida.
 Em wrong ou partial: primeiro o que a forma escrita pelo usuário significa de fato ou o que falta nela, depois onde a forma correta se aplica.
-Em right: apresenta a alternativa escrita exatamente como está em answerKeys, em *negrito*, com um uso em inglês. É complemento da resposta dada, nunca correção nem ressalva.
+Em right: apresenta a alternativa escrita exatamente como está em answerKeys, em *negrito*. Alternativa em inglês vem com um uso diferente da frase do feedback_text; alternativa em português vem sozinha (ex: Você também poderia usar **voltar**.). É complemento da resposta dada, nunca correção nem ressalva.
+
+A redação da dica segue o nível do inglês informado. No nível basic, nenhum termo de análise gramatical (objeto, substantivo, verbo, adjetivo, sujeito, predicado, preposição, artigo, classe de palavra, tempo verbal): a dica explica pelo uso, dizendo o que a forma escrita quer dizer e o que ela ainda pede.
+(em vez de "como verbo, access precisa de um objeto; aqui, access é o substantivo", no basic: "_access_ sozinho já quer dizer acesso; com _to access_ você precisa dizer acessar o quê")
 
 Os usos em inglês mostram o termo correto em contextos diferentes entre si, ou onde a forma que o usuário escreveu de fato se aplica. Nunca o termo correto acrescido de uma palavra colada nele.
+O uso em inglês ("como em ...") mostra a mesma construção num contexto diferente do que o usuário acabou de praticar: outro verbo, outro objeto, outra situação. Nunca repete o termo já citado na dica, a resposta do usuário, a pergunta ou a frase do feedback_text. Se não houver variação útil, a dica termina sem o uso, sem "como em".
 
 Validação da dica:
 - Máximo 40 palavras.
 - Linguagem de aluno, sem nomenclatura gramatical.
+- No nível basic, nenhum dos termos de análise gramatical listados acima.
 - Descreve, não instrui.
 - Não nomeia a classe no texto.
-- Não repete a frase do feedback_text.
+- Não repete frase, termo ou exemplo do feedback_text.
 - Não compara com opção que o usuário não mencionou, exceto a alternativa vinda das answerKeys, citada literalmente, ou outra forma válida da mesma regra (cannot e can't).
 - Os usos em inglês nunca contêm o termo correto acrescido de uma única palavra.
+- O uso em inglês, quando houver, é diferente de tudo que a dica já cita: nunca a mesma frase do termo em *negrito* com outra maiúscula ou pontuação.
 - Marcação permitida: *negrito* nas formas contrastadas, _itálico_ em termo ou expressão curta em inglês, "aspas duplas" em frase completa em inglês (com sujeito e verbo), ~riscado~ apenas na forma exata que não existe em inglês (palavra inventada ou combinação inexistente). Nunca risca palavra que existe com outro significado ou escopo. Na dúvida, não risca. Nenhuma outra marcação.
 - Nunca aplica itálico ou negrito dentro de trecho entre aspas.
 - Sem quebra de linha, sem emoji, sem travessão.

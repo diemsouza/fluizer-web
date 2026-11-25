@@ -2,6 +2,8 @@ import { ulid } from "ulid";
 import { uploadFile } from "../vendors/storage.vendor";
 import { transcribeAudio } from "../vendors/whisper.vendor";
 import { createMedia } from "../repo/media.repo";
+import { findLastActiveActivityByUser } from "../repo/activities.repo";
+import { findPendingQuestion } from "../repo/questions.repo";
 import { readAudioDuration } from "./feedback-audio-service";
 import { handleIncomingMessage } from "./message-service";
 import { resolveChannel } from "../lib/channels/resolve-channel";
@@ -13,6 +15,13 @@ import {
 } from "../lib/constants";
 import { buildMediaPath } from "../lib/utils";
 import { audioExtensionForMime, baseMimeType } from "../core/voice-note";
+import {
+  getExpectedAnswerLanguage,
+  needsForcedVoicePass,
+  resolveVoiceLanguage,
+  type AnswerLanguage,
+  type VoicePass,
+} from "../core/answer-language";
 import type { IncomingMessage } from "../types/domain";
 
 export type StoredVoiceNote = {
@@ -22,7 +31,19 @@ export type StoredVoiceNote = {
   buffer: Buffer;
 };
 
-type TranscribedVoiceNote = { text: string; duration: number | null };
+type LanguageCheck = {
+  autoLanguage: AnswerLanguage | null;
+  autoLogprob: number | null;
+  forcedLogprob: number | null;
+};
+
+type TranscribedVoiceNote = {
+  text: string;
+  duration: number | null;
+  language: AnswerLanguage | null;
+  isLanguageMismatch: boolean;
+  languageCheck: LanguageCheck | null;
+};
 
 export async function storeVoiceNote(
   buffer: Buffer,
@@ -42,24 +63,87 @@ export async function storeVoiceNote(
   return { mediaId, mediaPath, contentType, buffer };
 }
 
+// A segunda passada so roda quando o idioma detectado diverge do esperado.
+// Falha nela vale como duvida: segue com a primeira, sem bloquear.
+async function transcribeForcedPass(
+  voiceNote: StoredVoiceNote,
+  language: AnswerLanguage,
+): Promise<VoicePass | null> {
+  try {
+    return await transcribeAudio(voiceNote.buffer, voiceNote.contentType, {
+      language,
+    });
+  } catch (err) {
+    console.error("[transcribeForcedPass] failed:", voiceNote.mediaId, err);
+    return null;
+  }
+}
+
 // Falha do Whisper segue com transcricao vazia: o fluxo responde pedindo
 // para gravar de novo em vez de deixar o usuario sem retorno.
 async function transcribeVoiceNote(
   voiceNote: StoredVoiceNote,
+  expectedLanguage: AnswerLanguage | null,
 ): Promise<TranscribedVoiceNote> {
   try {
-    const result = await transcribeAudio(
-      voiceNote.buffer,
-      voiceNote.contentType,
-    );
+    const auto = await transcribeAudio(voiceNote.buffer, voiceNote.contentType);
     const duration =
-      result.duration ??
+      auto.duration ??
       (await readAudioDuration(voiceNote.buffer, voiceNote.contentType));
-    return { text: result.text.trim(), duration };
+    if (!expectedLanguage || !needsForcedVoicePass(auto.language, expectedLanguage)) {
+      return {
+        text: auto.text.trim(),
+        duration,
+        language: auto.language,
+        isLanguageMismatch: false,
+        languageCheck: null,
+      };
+    }
+    const forced = await transcribeForcedPass(voiceNote, expectedLanguage);
+    const resolved = resolveVoiceLanguage(auto, forced, expectedLanguage);
+    return {
+      text: resolved.text.trim(),
+      duration,
+      language: resolved.language,
+      isLanguageMismatch: resolved.isMismatch,
+      languageCheck: {
+        autoLanguage: auto.language,
+        autoLogprob: auto.avgLogprob,
+        forcedLogprob: forced?.avgLogprob ?? null,
+      },
+    };
   } catch (err) {
     console.error("[transcribeVoiceNote] failed:", voiceNote.mediaId, err);
-    return { text: "", duration: null };
+    return {
+      text: "",
+      duration: null,
+      language: null,
+      isLanguageMismatch: false,
+      languageCheck: null,
+    };
   }
+}
+
+async function findExpectedAnswerLanguage(
+  userId: string,
+): Promise<AnswerLanguage | null> {
+  const activity = await findLastActiveActivityByUser(userId);
+  if (!activity) return null;
+  const pendingQuestion = await findPendingQuestion(activity.id);
+  return getExpectedAnswerLanguage(pendingQuestion?.questionFormat ?? null);
+}
+
+function buildVoiceMediaMetadata(
+  transcribed: TranscribedVoiceNote,
+): Record<string, unknown> | undefined {
+  const metadata = {
+    ...(transcribed.duration !== null ? { duration: transcribed.duration } : {}),
+    ...(transcribed.language ? { language: transcribed.language } : {}),
+    ...(transcribed.languageCheck
+      ? { languageCheck: transcribed.languageCheck }
+      : {}),
+  };
+  return Object.keys(metadata).length > 0 ? metadata : undefined;
 }
 
 export async function processVoiceNote(
@@ -67,7 +151,8 @@ export async function processVoiceNote(
   userId: string,
   input: IncomingMessage,
 ): Promise<void> {
-  const { text, duration } = await transcribeVoiceNote(voiceNote);
+  const expectedLanguage = await findExpectedAnswerLanguage(userId);
+  const transcribed = await transcribeVoiceNote(voiceNote, expectedLanguage);
   const messageId = ulid();
   await createMedia({
     id: voiceNote.mediaId,
@@ -79,14 +164,15 @@ export async function processVoiceNote(
     contentType: voiceNote.contentType,
     mediaPath: voiceNote.mediaPath,
     mediaSize: voiceNote.buffer.length,
-    mediaTranscription: text,
-    metadata: duration !== null ? { duration } : undefined,
+    mediaTranscription: transcribed.text,
+    metadata: buildVoiceMediaMetadata(transcribed),
   });
   await handleIncomingMessage(
     {
       ...input,
-      text,
+      text: transcribed.text,
       isVoiceNote: true,
+      isVoiceLanguageMismatch: transcribed.isLanguageMismatch,
       messageId,
       mediaType: MEDIA_TYPE.AUDIO,
       mediaId: voiceNote.mediaId,

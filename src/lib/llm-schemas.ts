@@ -116,6 +116,7 @@ export const answerEvaluationSchema = z.object({
   feedback_translation: z.string(),
   right_answer: z.string().nullable(),
   user_unknown: z.boolean().nullable(),
+  answer_language: z.enum(["en", "pt", "unclear"]),
   eval_tip_class: z.enum([
     "calque",
     "near_synonym",
