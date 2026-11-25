@@ -58,7 +58,7 @@ export function RecordingBar({
         heights={levels}
         barOpacity={0.85}
         barClassName="flex-none w-[3px]"
-        className="h-6 min-w-0 flex-1 justify-between text-foreground"
+        className="h-6 min-w-0 flex-1 justify-end overflow-hidden text-foreground"
       />
     </div>
   );

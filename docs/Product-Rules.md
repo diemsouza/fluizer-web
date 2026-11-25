@@ -261,7 +261,7 @@ Prática de escuta ativa, para tirar a prática do ritmo só de leitura e escrit
 - **Avaliação da tradução:** semântica, pelo mesmo fluxo. Vale qualquer tradução em português que dê o mesmo sentido, não literal, sem precisar bater com as traduções de referência; grafia e acentuação em português não contam. Parcial: sentido central certo, mas perdeu ou trocou uma parte relevante (quem, quando, negação, quantidade). Errado: sentido central errado, outra frase ou resposta em inglês. Nota, SM-2 e score seguem as regras atuais.
 - **Feedback:** mesmo padrão nos dois, numa linha só: abertura de sempre, a resposta correta entre aspas e a outra língua em itálico entre parênteses. Na transcrição, a frase em inglês entre aspas, limpa, sem marcação do erro em nenhum status, e a tradução em português entre parênteses. O erro só aparece na dica, quando houver classe de escuta aplicável (Seção 6.2), explicado de forma pontual, nunca como a frase corrigida. Na tradução, a tradução de referência em português entre aspas (a primeira resposta esperada) e a frase em inglês entre parênteses. A montagem é feita em código, a partir da frase de demonstração e da sua tradução, sem depender da formatação do modelo.
 - Nenhum dos dois gera áudio de feedback (seria a mesma frase).
-- **Velocidade da voz:** no nível básico a frase é falada um pouco abaixo da velocidade natural, mantendo pronúncia e ritmo de nativo; intermediário e avançado em velocidade normal. Mesma regra do áudio de feedback (Seção 6.1).
+- **Velocidade da voz:** no nível básico a frase é falada mais devagar que a fala natural, como quem fala com iniciante, mantendo a pronúncia de nativo; intermediário e avançado em velocidade normal. Mesma regra do áudio de feedback (Seção 6.1).
 
 `pergunta aberta` e `pergunta direta` (usadas antes para material de texto corrido e de exercício, respectivamente) ficaram sem uso desde que esses tipos de conteúdo deixaram de existir (Seção 3) — formatos legados, fora do fluxo ativo hoje.
 
@@ -315,7 +315,7 @@ Avaliado contra as respostas esperadas geradas na criação da atividade. Tom di
 
 Feedback pode ser acompanhado de uma versão em áudio (Ogg/Opus, ver Seção 17), enviada como mensagem separada logo após o feedback em texto. Só o conteúdo de demonstração vai para o áudio, sem a abertura de resultado e sem emoji, informação redundante em áudio, já carregada pela entonação da fala.
 
-No nível básico a voz fala um pouco abaixo da velocidade natural, como quem fala com iniciante, sem perder a pronúncia e o ritmo de nativo; intermediário e avançado ouvem em velocidade normal. Vale para toda voz gerada (áudio de feedback e áudio da pergunta de escuta).
+No nível básico a voz fala mais devagar que a fala natural, como quem fala com iniciante, sem perder a pronúncia de nativo; intermediário e avançado ouvem em velocidade normal. Vale para toda voz gerada (áudio de feedback e áudio da pergunta de escuta).
 
 Envio de áudio é parcial, não em toda resposta, controlado por uma fração configurável do total. Falha na geração ou envio do áudio nunca atrasa nem impede o feedback em texto, que segue as regras desta seção normalmente, sem nenhuma indicação de erro visível ao usuário.
 
