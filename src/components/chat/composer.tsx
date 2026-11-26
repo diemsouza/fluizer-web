@@ -196,11 +196,21 @@ export const Composer = forwardRef<ComposerHandle, ComposerProps>(
         ? !text.trim() || !!disabled || !!isWaitingForResponse
         : actionRole === "mic" && (!!disabled || !!isWaitingForResponse);
 
+    // No toque em enviar o campo nao pode perder o foco no pointerdown: o
+    // teclado fecharia antes do click, o composer desceria e o click cairia
+    // fora do botao. O handleSend tira o foco depois de enviar.
     function handleActionPointerDown(
       event: ReactPointerEvent<HTMLButtonElement>,
     ) {
+      if (actionRole === "send") {
+        event.preventDefault();
+        return;
+      }
       if (actionRole !== "mic" || isActionDisabled) return;
-      if (syncTextFromField()) return;
+      if (syncTextFromField()) {
+        event.preventDefault();
+        return;
+      }
       hold.handlers.onPointerDown(event);
     }
 
@@ -387,7 +397,6 @@ export const Composer = forwardRef<ComposerHandle, ComposerProps>(
                     elapsedMs={recorder.elapsedMs}
                     levels={recorder.levels}
                     isWarning={recorder.isWarning}
-                    debugReading={recorder.debugReading}
                     onCancel={recorder.cancel}
                   />
                 ) : (

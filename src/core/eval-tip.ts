@@ -27,6 +27,14 @@ export function hasAlternativeKeyInTip(
   });
 }
 
+export function isTermInAnswer(term: string, userAnswer: string): boolean {
+  const normalizedTerm = toComparable(term);
+  return (
+    normalizedTerm !== "" &&
+    ` ${toComparable(userAnswer)} `.includes(` ${normalizedTerm} `)
+  );
+}
+
 export function isAnswerInKeys(
   answerKeys: string[],
   userAnswer: string,

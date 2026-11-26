@@ -131,7 +131,6 @@ export function NativeAudioPlayer({
   const [state, setState] = useState<PlayerState>("ready");
   const [elementDuration, setElementDuration] = useState(0);
   const [decoded, setDecoded] = useState<DecodedAudio | null>(null);
-  const [applied, setApplied] = useState<DecodedAudio | null>(null);
   const [isVisible, setIsVisible] = useState(false);
   const [progress, setProgress] = useState(0);
   const [isReady, setIsReady] = useState(false);
@@ -142,8 +141,10 @@ export function NativeAudioPlayer({
   const waveRef = useRef<HTMLDivElement | null>(null);
   const rootRef = useRef<HTMLDivElement | null>(null);
   const isCountedPlayingRef = useRef(false);
-  const duration = applied?.duration || elementDuration;
-  const waveform = applied?.waveform ?? [];
+  const decodeRef = useRef<(() => Promise<void>) | null>(null);
+  const hasDecodeStartedRef = useRef(false);
+  const duration = decoded?.duration || elementDuration;
+  const waveform = decoded?.waveform ?? [];
   const durationRef = useRef(0);
   durationRef.current = duration;
 
@@ -170,7 +171,6 @@ export function NativeAudioPlayer({
     setIsReady(false);
     setElementDuration(0);
     setDecoded(null);
-    setApplied(null);
     setProgress(0);
     syncDuration();
   }, [audioUrl, syncDuration]);
@@ -205,6 +205,8 @@ export function NativeAudioPlayer({
     if (!isVisible) return;
     const controller = new AbortController();
     const decode = async (): Promise<void> => {
+      if (hasDecodeStartedRef.current) return;
+      hasDecodeStartedRef.current = true;
       try {
         const res = await fetch(audioUrl, { signal: controller.signal });
         if (!res.ok) throw new Error(`fetch failed: ${res.status}`);
@@ -219,13 +221,14 @@ export function NativeAudioPlayer({
         console.error("[NativeAudioPlayer] decode failed", err);
       }
     };
+    decodeRef.current = decode;
     void enqueueDecode(decode, controller.signal);
-    return () => controller.abort();
+    return () => {
+      controller.abort();
+      decodeRef.current = null;
+      hasDecodeStartedRef.current = false;
+    };
   }, [audioUrl, isVisible]);
-
-  useEffect(() => {
-    if (decoded && state !== "playing") setApplied(decoded);
-  }, [decoded, state]);
 
   useEffect(() => {
     if (state === "playing") return;
@@ -311,13 +314,17 @@ export function NativeAudioPlayer({
       onPlay?.(externalId);
     }
 
+    // Tocar antes do decode sair da fila deixaria as barras em pontinhos ate o
+    // fim: o decode deste audio fura a fila e roda durante a propria reproducao.
+    if (!decoded) void decodeRef.current?.();
+
     stopActiveAudio(interruptPlayback);
     activeStopper = interruptPlayback;
     audio.play().catch((err: unknown) => {
       console.error("[NativeAudioPlayer] playback", err);
       setState("error");
     });
-  }, [state, externalId, onPlay, interruptPlayback]);
+  }, [state, decoded, externalId, onPlay, interruptPlayback]);
 
   const handleSeek = useCallback(
     (seconds: number) => {

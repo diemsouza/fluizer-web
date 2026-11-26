@@ -12,7 +12,6 @@ type RecordingBarProps = {
   elapsedMs: number;
   levels: number[];
   isWarning: boolean;
-  debugReading?: string | null;
   onCancel: () => void;
 };
 
@@ -21,7 +20,6 @@ export function RecordingBar({
   elapsedMs,
   levels,
   isWarning,
-  debugReading,
   onCancel,
 }: RecordingBarProps): React.JSX.Element {
   const t = useTranslations("app.chat.voice");
@@ -56,11 +54,6 @@ export function RecordingBar({
       >
         {formatTime(elapsedMs / 1000)}
       </span>
-      {debugReading && (
-        <span className="shrink-0 font-mono text-caption text-muted-foreground">
-          {debugReading}
-        </span>
-      )}
       <WaveformBars
         heights={levels}
         barOpacity={0.85}

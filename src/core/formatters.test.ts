@@ -328,3 +328,36 @@ describe("audio_translation", () => {
     );
   });
 });
+
+describe("formatFeedback image_transcription", () => {
+  const evaluation = {
+    status: "partial" as const,
+    feedback_text: "The scene shows an apartment building.",
+    feedback_translation: "A cena mostra um prédio de apartamentos.",
+    right_answer: "apartment building",
+    user_unknown: false,
+    eval_tip_class: "structure" as const,
+    eval_tip: null,
+    answer_language: "en" as const,
+    feedback_note: "",
+  };
+
+  it("termo solto já escrito pelo usuário não se repete após a abertura", () => {
+    const message = formatFeedback(evaluation, Level.intermediate, {
+      format: QuestionFormat.image_transcription,
+      userAnswer: "Apartment building",
+    });
+    expect(message.text).not.toContain('"Apartment building".');
+    expect(message.text).toContain(
+      '"The scene shows an apartment building."',
+    );
+  });
+
+  it("termo digitado errado continua aparecendo após a abertura", () => {
+    const message = formatFeedback(evaluation, Level.intermediate, {
+      format: QuestionFormat.image_transcription,
+      userAnswer: "Apartmet building",
+    });
+    expect(message.text).toContain('"Apartment building".');
+  });
+});

@@ -17,7 +17,6 @@ import {
   VOICE_MIN_MS,
   VOICE_WARN_SEC,
 } from "@/src/lib/constants";
-import { DEBUG_COOKIE_NAME } from "@/src/core/debug";
 
 export type VoiceRecorderStatus =
   "idle" | "requesting" | "recording" | "denied";
@@ -35,7 +34,6 @@ type UseVoiceRecorderResult = {
   elapsedMs: number;
   levels: number[];
   isWarning: boolean;
-  debugReading: string | null;
   start: () => void;
   finish: () => void;
   cancel: () => void;
@@ -48,10 +46,11 @@ const LEVEL_TICK_MS = 130;
 // Barras suficientes para preencher o composer largo do desktop com espaco
 // fixo; as que nao cabem ficam cortadas a esquerda.
 const RECORDING_BARS = 120;
-// Escala fixa: dividir pelo maior pico ate agora fazia o ruido de fundo encher
-// as barras e encolhia tudo quando a fala comecava. Abaixo do corte e ruido.
-const LEVEL_GATE = 0.02;
-const LEVEL_REF = 0.4;
+// Escala fixa em dB: dividir pelo maior pico fazia o ruido encher as barras, e
+// linear com corte zerava o iPhone, que sem cancelamento de eco fica perto de
+// 0.001 em silencio e ~0.1 nos picos da fala.
+const LEVEL_MIN_DB = -50;
+const LEVEL_MAX_DB = -20;
 // Rede de seguranca: se o MediaRecorder nunca disparar "stop", a UI nao pode
 // ficar presa no estado gravando.
 const STOP_FALLBACK_MS = 1500;
@@ -109,25 +108,11 @@ function readLevel(
   return peak;
 }
 
-// A raiz mantem visivel o sinal baixo do iOS sem cancelamento de eco.
 function scaleLevel(peak: number): number {
-  return Math.min(1, Math.sqrt(Math.max(0, peak - LEVEL_GATE) / LEVEL_REF));
-}
-
-// TODO: temporario, mede o pico cru no iPhone (cookie fz_debug, ?debug=1).
-// Remover depois de calibrar a escala das barras.
-function isDebugCookieOn(): boolean {
-  return document.cookie
-    .split(";")
-    .some((part) => part.trim() === `${DEBUG_COOKIE_NAME}=1`);
-}
-
-function formatDebugReading(
-  peak: number,
-  maxPeak: number,
-  ctx: BaseAudioContext,
-): string {
-  return `pico ${peak.toFixed(4)} (${Math.round(peak * 255)}/255) max ${maxPeak.toFixed(4)} ${ctx.sampleRate}Hz ${ctx.state}`;
+  if (peak <= 0) return 0;
+  const db = 20 * Math.log10(peak);
+  const level = (db - LEVEL_MIN_DB) / (LEVEL_MAX_DB - LEVEL_MIN_DB);
+  return Math.min(1, Math.max(0, level));
 }
 
 export function useVoiceRecorder({
@@ -137,7 +122,6 @@ export function useVoiceRecorder({
   const [status, setStatus] = useState<VoiceRecorderStatus>("idle");
   const [elapsedMs, setElapsedMs] = useState(0);
   const [levels, setLevels] = useState<number[]>(silentLevels);
-  const [debugReading, setDebugReading] = useState<string | null>(null);
 
   const statusRef = useRef<VoiceRecorderStatus>("idle");
   const streamRef = useRef<MediaStream | null>(null);
@@ -216,8 +200,6 @@ export function useVoiceRecorder({
 
   const startTimers = useCallback((): void => {
     const buffer = new Float32Array(1024);
-    const isDebug = isDebugCookieOn();
-    let maxPeak = 0;
     const clock = setInterval(() => {
       const elapsed = performance.now() - startedAtRef.current;
       setElapsedMs(elapsed);
@@ -226,13 +208,8 @@ export function useVoiceRecorder({
     const meter = setInterval(() => {
       const analyser = meterRef.current?.analyser;
       if (!analyser) return;
-      const peak = readLevel(analyser, buffer);
-      const level = scaleLevel(peak);
+      const level = scaleLevel(readLevel(analyser, buffer));
       setLevels((prev) => [...prev.slice(1), level]);
-      if (isDebug) {
-        maxPeak = Math.max(maxPeak, peak);
-        setDebugReading(formatDebugReading(peak, maxPeak, analyser.context));
-      }
     }, LEVEL_TICK_MS);
     timersRef.current = [clock, meter];
   }, [stopRecording]);
@@ -342,7 +319,6 @@ export function useVoiceRecorder({
     elapsedMs,
     levels,
     isWarning: elapsedMs >= VOICE_WARN_SEC * 1000,
-    debugReading,
     start,
     finish,
     cancel,

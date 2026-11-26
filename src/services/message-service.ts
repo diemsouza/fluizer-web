@@ -953,6 +953,7 @@ export async function handleIncomingMessage(
               const feedback = evaluation
                 ? formatFeedback(evaluation, activeActivity.userLevel, {
                     format: pendingQuestion.questionFormat,
+                    userAnswer: text,
                   })
                 : formatFeedbackFailed();
               // Formatos de audio nao geram audio de feedback: seria a mesma frase.

@@ -33,6 +33,7 @@ import type { EngagementReminder } from "./engagement-reminder";
 import { buildActivityReadyText } from "./activity-ready";
 import type { AnswerLanguage } from "./answer-language";
 import { isDomainId } from "./activity-request";
+import { isTermInAnswer } from "./eval-tip";
 import ptMessages from "../locales/pt.json";
 
 // Envio roda fora do contexto de request (after, fila), sem next-intl.
@@ -842,7 +843,7 @@ export function getFeedbackOpening(
 export function formatFeedback(
   feedbackResult: AnswerEvaluationResult & ImageAnswerEvaluationFields,
   level?: Level,
-  options: { format?: QuestionFormat | null } = {},
+  options: { format?: QuestionFormat | null; userAnswer?: string } = {},
 ): FormattedMessage {
   const {
     status: evalStatus,
@@ -872,10 +873,22 @@ export function formatFeedback(
     normalizeRightAnswerAndFeedback(rightAnswer) ===
       normalizeRightAnswerAndFeedback(feedback);
 
+  // image_transcription: termo certo mas solto e partial so pela frase; repetir
+  // o termo do usuario na abertura faria parecer que a resposta estava certa.
+  const isTermAlreadyWritten =
+    format === QuestionFormat.image_transcription &&
+    !!rightAnswer &&
+    isTermInAnswer(rightAnswer, options.userAnswer ?? "");
+
   const result = [];
   if (emoji) result.push(emoji);
   if (opening) result.push(opening);
-  if (evalStatus !== "right" && rightAnswer && !feedbackIsRightAnswer)
+  if (
+    evalStatus !== "right" &&
+    rightAnswer &&
+    !feedbackIsRightAnswer &&
+    !isTermAlreadyWritten
+  )
     result.push(`"${capitalizeFirst(rightAnswer)}".`);
   if (feedback)
     result.push(feedback.indexOf('"') === -1 ? `"${feedback}"` : feedback);

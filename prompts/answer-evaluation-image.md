@@ -20,6 +20,7 @@ Nível e frase:
 
 - No nível básico, palavra ou expressão solta basta. Erros no resto da frase nunca derrubam o acerto: viram correção em feedback_note.
 - Do intermediário para cima, a pergunta pede frase completa. Com o termo válido, o status cai para partial quando a resposta não é uma frase (termo solto) ou quando a frase tem erro que muda o sentido ou a estrutura (verbo ausente, tempo trocado, ordem que não funciona em inglês). Deslize pequeno (artigo, preposição comum, digitação fora do termo) não derruba: vira correção em feedback_note.
+- Partial por termo solto: eval_tip_class é structure e eval_tip diz que a pergunta pedia uma frase completa, seguida de uma frase completa em inglês com o termo numa situação diferente da do feedback_text ("como em ..."). Esse uso pode conter o termo, porque o que se ensina é ele dentro de uma frase. feedback_note não fala da falta de frase.
 - Elementos extras da cena que o usuário descreveu corretamente recebem elogio em feedback_note, mas nunca transformam wrong ou partial em right.
 
 Quando a resposta indicar claramente desconhecimento ("não sei", "não lembro", "esqueci", "sem ideia" ou equivalente), o status é wrong e user_unknown é true.
