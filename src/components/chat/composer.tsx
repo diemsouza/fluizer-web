@@ -387,6 +387,7 @@ export const Composer = forwardRef<ComposerHandle, ComposerProps>(
                     elapsedMs={recorder.elapsedMs}
                     levels={recorder.levels}
                     isWarning={recorder.isWarning}
+                    debugReading={recorder.debugReading}
                     onCancel={recorder.cancel}
                   />
                 ) : (

@@ -1,6 +1,6 @@
 import { MEDIA_INLINE_PARAM } from "@/src/lib/constants";
 import { isStudyMessage } from "@/src/core/study-message";
-import { isInaudibleTranscription } from "@/src/core/voice-note";
+import { isUnusableTranscription } from "@/src/core/voice-note";
 import { parseClientCommand } from "@/src/core/client-command";
 import { readQuestionRating } from "@/src/core/question-rating";
 import {
@@ -234,7 +234,7 @@ function buildMessage(
       externalId: row.externalId ?? undefined,
       translation,
       transcription:
-        from === "user" && !isInaudibleTranscription(row.content)
+        from === "user" && !isUnusableTranscription(row.content)
           ? row.content
           : undefined,
     };

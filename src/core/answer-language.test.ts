@@ -25,6 +25,7 @@ describe("getExpectedAnswerLanguage", () => {
 describe("needsForcedVoicePass", () => {
   it("só com idioma detectado diferente do esperado", () => {
     expect(needsForcedVoicePass("pt", "en")).toBe(true);
+    expect(needsForcedVoicePass("other", "en")).toBe(true);
     expect(needsForcedVoicePass("en", "en")).toBe(false);
     expect(needsForcedVoicePass(null, "en")).toBe(false);
     expect(needsForcedVoicePass("pt", null)).toBe(false);
@@ -62,6 +63,16 @@ describe("resolveVoiceLanguage", () => {
     expect(resolveVoiceLanguage(short, forced, "en").isMismatch).toBe(false);
   });
 
+  it("coreano curto: a passada forçada em inglês vence", () => {
+    const korean = { text: "만나서 반가워요!", language: "other" as const, avgLogprob: -0.478 };
+    const forced = { text: "Nice to meet you.", language: "en" as const, avgLogprob: -0.472 };
+    expect(resolveVoiceLanguage(korean, forced, "en")).toEqual({
+      text: "Nice to meet you.",
+      language: "en",
+      isMismatch: false,
+    });
+  });
+
   it("sem segunda passada segue sem bloquear", () => {
     expect(resolveVoiceLanguage(auto, null, "en").isMismatch).toBe(false);
   });
@@ -71,6 +82,7 @@ describe("isAnswerLanguageMismatch", () => {
   it("unclear ou sem idioma esperado nunca bloqueia", () => {
     expect(isAnswerLanguageMismatch("pt", "en")).toBe(true);
     expect(isAnswerLanguageMismatch("en", "pt")).toBe(true);
+    expect(isAnswerLanguageMismatch("other", "en")).toBe(true);
     expect(isAnswerLanguageMismatch("unclear", "en")).toBe(false);
     expect(isAnswerLanguageMismatch("pt", null)).toBe(false);
     expect(isAnswerLanguageMismatch(undefined, "en")).toBe(false);

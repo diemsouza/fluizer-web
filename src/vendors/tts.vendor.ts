@@ -13,6 +13,11 @@ const OPENAI_TTS_INSTRUCTIONS =
 const OPENAI_TTS_SLOW_INSTRUCTIONS =
   " Fale devagar, para um iniciante no idioma: cerca de 110 palavras por minuto, cada palavra bem articulada, com uma pausa curta entre frases e entre partes da frase. Não acelere no fim da frase nem em palavras curtas. Mantenha a pronúncia de um falante nativo, sem soletrar e sem pausa entre cada palavra.";
 
+// Sem ritmo explicito o modelo oscila entre normal e rapido a cada geracao.
+// Ritmo so por instrucao: o parametro speed deixa a voz robotica.
+const OPENAI_TTS_NORMAL_INSTRUCTIONS =
+  " Fale em ritmo calmo e natural, de um falante nativo conversando com calma: cerca de 140 palavras por minuto, constante do começo ao fim. Não acelere, não corra no fim da frase nem em palavras curtas. Pausa natural entre frases. Mantenha a fala ligada e natural, sem soar lenta ou didática.";
+
 export async function generateSpeechByOpenAi(
   text: string,
   pace: TtsPace,
@@ -28,9 +33,10 @@ export async function generateSpeechByOpenAi(
         model: "gpt-4o-mini-tts",
         voice: "marin",
         instructions:
-          pace === "slow"
-            ? OPENAI_TTS_INSTRUCTIONS + OPENAI_TTS_SLOW_INSTRUCTIONS
-            : OPENAI_TTS_INSTRUCTIONS,
+          OPENAI_TTS_INSTRUCTIONS +
+          (pace === "slow"
+            ? OPENAI_TTS_SLOW_INSTRUCTIONS
+            : OPENAI_TTS_NORMAL_INSTRUCTIONS),
         input: `TEXTO PARA LER:\n"${text.replace(/"/g, '\\"')}\n\n"`,
         response_format: "opus",
       }),

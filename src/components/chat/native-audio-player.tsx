@@ -243,6 +243,20 @@ export function NativeAudioPlayer({
     };
   }, [interruptPlayback, markPlaying]);
 
+  // TODO: log temporario para investigar audio preso em pause no fim (iOS).
+  const logMediaEvent = useCallback((event: SyntheticEvent<HTMLAudioElement>): void => {
+    if (process.env.NODE_ENV !== "development") return;
+    const audio = event.currentTarget;
+    console.info("[NativeAudioPlayer] event", event.type, {
+      currentTime: audio.currentTime,
+      elementDuration: audio.duration,
+      decodedDuration: durationRef.current,
+      paused: audio.paused,
+      ended: audio.ended,
+      readyState: audio.readyState,
+    });
+  }, []);
+
   const handleError = useCallback((): void => {
     const code = audioRef.current?.error?.code;
     console.error("[NativeAudioPlayer] media error", code);
@@ -329,7 +343,12 @@ export function NativeAudioPlayer({
         src={audioUrl}
         preload={isVisible ? "auto" : "none"}
         onLoadedMetadata={syncDuration}
-        onDurationChange={syncDuration}
+        onDurationChange={(e) => {
+          logMediaEvent(e);
+          syncDuration();
+        }}
+        onWaiting={logMediaEvent}
+        onStalled={logMediaEvent}
         onTimeUpdate={(e) => setProgress(e.currentTarget.currentTime)}
         onSeeked={(e) => setProgress(e.currentTarget.currentTime)}
         onCanPlay={() => setIsReady(true)}
@@ -338,8 +357,14 @@ export function NativeAudioPlayer({
           markPlaying(true);
           setState("playing");
         }}
-        onPause={handlePause}
-        onEnded={handleEnded}
+        onPause={(e) => {
+          logMediaEvent(e);
+          handlePause();
+        }}
+        onEnded={(e) => {
+          logMediaEvent(e);
+          handleEnded();
+        }}
         onError={handleError}
       />
       <div className={`flex items-center gap-3${isError ? " opacity-50" : ""}`}>

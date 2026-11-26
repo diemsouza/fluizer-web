@@ -3,7 +3,8 @@ import {
   audioExtensionForMime,
   baseMimeType,
   isAcceptedVoiceNote,
-  isInaudibleTranscription,
+  isUnusableTranscription,
+  isVoiceNoteTooShort,
 } from "./voice-note";
 
 describe("audioExtensionForMime", () => {
@@ -28,16 +29,39 @@ describe("baseMimeType", () => {
   });
 });
 
-describe("isInaudibleTranscription", () => {
+describe("isUnusableTranscription", () => {
   it("vazia ou so pontuacao e inaudivel", () => {
-    expect(isInaudibleTranscription("")).toBe(true);
-    expect(isInaudibleTranscription("  ...  ")).toBe(true);
-    expect(isInaudibleTranscription("♪ ♪")).toBe(true);
+    expect(isUnusableTranscription("")).toBe(true);
+    expect(isUnusableTranscription("  ...  ")).toBe(true);
+    expect(isUnusableTranscription("♪ ♪")).toBe(true);
   });
 
   it("qualquer letra conta como resposta", () => {
-    expect(isInaudibleTranscription("I")).toBe(false);
-    expect(isInaudibleTranscription("é")).toBe(false);
+    expect(isUnusableTranscription("I")).toBe(false);
+    expect(isUnusableTranscription("é")).toBe(false);
+    expect(isUnusableTranscription("Nice to meet you.")).toBe(false);
+    expect(isUnusableTranscription("Prazer em conhecer você")).toBe(false);
+  });
+
+  it("outro alfabeto nunca vai para a avaliação", () => {
+    expect(isUnusableTranscription("만나서 반가워요!")).toBe(true);
+    expect(isUnusableTranscription("Приятно познакомиться")).toBe(true);
+    expect(isUnusableTranscription("はじめまして")).toBe(true);
+    expect(isUnusableTranscription("Χάρηκα")).toBe(true);
+  });
+
+  it("alucinações do Whisper em silêncio", () => {
+    expect(isUnusableTranscription("Legendas pela comunidade Amara.org")).toBe(true);
+    expect(isUnusableTranscription("Obrigado por assistir!")).toBe(true);
+    expect(isUnusableTranscription("Thanks for watching!")).toBe(true);
+  });
+});
+
+describe("isVoiceNoteTooShort", () => {
+  it("abaixo do mínimo é curto, duração ilegível segue", () => {
+    expect(isVoiceNoteTooShort(0.6)).toBe(true);
+    expect(isVoiceNoteTooShort(2.41)).toBe(false);
+    expect(isVoiceNoteTooShort(null)).toBe(false);
   });
 });
 

@@ -86,7 +86,7 @@ import {
 } from "./activity-service";
 import { resolveFeedbackAudioMediaId } from "./feedback-audio-service";
 import { linkAnswerAudio } from "./answer-audio-service";
-import { isInaudibleTranscription } from "../core/voice-note";
+import { isUnusableTranscription } from "../core/voice-note";
 import {
   getTodayUsage,
   incrementUserMessageCount,
@@ -236,9 +236,9 @@ export async function handleIncomingMessage(
   await updateUserLastRequest(user.id, messageId);
 
   try {
-    // Audio sem fala nao chega a avaliacao: a pergunta continua pendente e
-    // nenhuma chamada de LLM e gasta.
-    if (input.isVoiceNote && isInaudibleTranscription(rawText)) {
+    // Audio sem fala ou com transcricao inutilizavel nao chega a avaliacao: a
+    // pergunta continua pendente e nenhuma chamada de LLM e gasta.
+    if (input.isVoiceNote && isUnusableTranscription(rawText)) {
       await saveUserMsg({
         userId: user.id,
         content: rawText,
@@ -945,6 +945,7 @@ export async function handleIncomingMessage(
                 await blockAnswerLanguage({
                   ...languageBlockParams,
                   expected: expectedLanguage,
+                  detected: evaluation?.answer_language,
                 });
                 return;
               }
@@ -1726,6 +1727,7 @@ async function blockAnswerLanguage(params: {
   activityId: string;
   question: Pick<Question, "id" | "metadata">;
   expected: AnswerLanguage;
+  detected?: string;
   text: string;
   input: IncomingMessage;
   today: Date;
@@ -1747,7 +1749,7 @@ async function blockAnswerLanguage(params: {
     channel,
     userId,
     activityId,
-    message: formatAnswerLanguageMismatch(expected),
+    message: formatAnswerLanguageMismatch(expected, params.detected),
     intent: "answer_language_mismatch",
     questionId: question.id,
     today,

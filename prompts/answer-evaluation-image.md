@@ -39,13 +39,13 @@ Não encerre com pergunta.
 O feedback_text é apenas o corpo do feedback. Não inclua abertura de resultado ("Correto!", "Errado!", "Quase!"), ela é adicionada fora deste prompt.
 Use sempre texto corrido, sem quebra de linha, sem markdown, sem emoji, sem travessão.
 
-answer_language: o idioma em que a resposta do usuário está escrita, independente de estar certa: "en" para inglês, "pt" para português. "unclear" quando não dá para afirmar: resposta de uma ou duas palavras que existem nos dois idiomas, mistura de idiomas, só número, sim/não, ok, ou resposta em branco. Na dúvida, "unclear".
+answer_language: o idioma em que a resposta do usuário está escrita, independente de estar certa: "en" para inglês, "pt" para português, "other" para qualquer outro idioma (espanhol, coreano, etc.). "unclear" quando não dá para afirmar: resposta de uma ou duas palavras que existem nos dois idiomas, mistura de idiomas, só número, sim/não, ok, ou resposta em branco. Na dúvida, "unclear".
 
 {tip}
 
 ## Output
 Retorne APENAS UM JSON válido. Sem markdown, sem cercas de código (```), sem texto antes ou depois.
-{"status": "right | partial | wrong", "feedback_text": "...", "feedback_translation": "...", "feedback_note": "...", "right_answer": "...", "user_unknown": true | false, "answer_language": "en | pt | unclear", "eval_tip_class": "...", "eval_tip": "...", "image_mismatch": true | false, "image_mismatch_reason": "..." | null}
+{"status": "right | partial | wrong", "feedback_text": "...", "feedback_translation": "...", "feedback_note": "...", "right_answer": "...", "user_unknown": true | false, "answer_language": "en | pt | other | unclear", "eval_tip_class": "...", "eval_tip": "...", "image_mismatch": true | false, "image_mismatch_reason": "..." | null}
 
 O bloco de exemplos abaixo corresponde ao formato da pergunta avaliada.
 

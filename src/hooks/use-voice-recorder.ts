@@ -17,6 +17,7 @@ import {
   VOICE_MIN_MS,
   VOICE_WARN_SEC,
 } from "@/src/lib/constants";
+import { DEBUG_COOKIE_NAME } from "@/src/core/debug";
 
 export type VoiceRecorderStatus =
   "idle" | "requesting" | "recording" | "denied";
@@ -34,6 +35,7 @@ type UseVoiceRecorderResult = {
   elapsedMs: number;
   levels: number[];
   isWarning: boolean;
+  debugReading: string | null;
   start: () => void;
   finish: () => void;
   cancel: () => void;
@@ -112,6 +114,22 @@ function scaleLevel(peak: number): number {
   return Math.min(1, Math.sqrt(Math.max(0, peak - LEVEL_GATE) / LEVEL_REF));
 }
 
+// TODO: temporario, mede o pico cru no iPhone (cookie fz_debug, ?debug=1).
+// Remover depois de calibrar a escala das barras.
+function isDebugCookieOn(): boolean {
+  return document.cookie
+    .split(";")
+    .some((part) => part.trim() === `${DEBUG_COOKIE_NAME}=1`);
+}
+
+function formatDebugReading(
+  peak: number,
+  maxPeak: number,
+  ctx: BaseAudioContext,
+): string {
+  return `pico ${peak.toFixed(4)} (${Math.round(peak * 255)}/255) max ${maxPeak.toFixed(4)} ${ctx.sampleRate}Hz ${ctx.state}`;
+}
+
 export function useVoiceRecorder({
   onRecorded,
   onCaptureError,
@@ -119,6 +137,7 @@ export function useVoiceRecorder({
   const [status, setStatus] = useState<VoiceRecorderStatus>("idle");
   const [elapsedMs, setElapsedMs] = useState(0);
   const [levels, setLevels] = useState<number[]>(silentLevels);
+  const [debugReading, setDebugReading] = useState<string | null>(null);
 
   const statusRef = useRef<VoiceRecorderStatus>("idle");
   const streamRef = useRef<MediaStream | null>(null);
@@ -197,6 +216,8 @@ export function useVoiceRecorder({
 
   const startTimers = useCallback((): void => {
     const buffer = new Float32Array(1024);
+    const isDebug = isDebugCookieOn();
+    let maxPeak = 0;
     const clock = setInterval(() => {
       const elapsed = performance.now() - startedAtRef.current;
       setElapsedMs(elapsed);
@@ -205,8 +226,13 @@ export function useVoiceRecorder({
     const meter = setInterval(() => {
       const analyser = meterRef.current?.analyser;
       if (!analyser) return;
-      const level = scaleLevel(readLevel(analyser, buffer));
+      const peak = readLevel(analyser, buffer);
+      const level = scaleLevel(peak);
       setLevels((prev) => [...prev.slice(1), level]);
+      if (isDebug) {
+        maxPeak = Math.max(maxPeak, peak);
+        setDebugReading(formatDebugReading(peak, maxPeak, analyser.context));
+      }
     }, LEVEL_TICK_MS);
     timersRef.current = [clock, meter];
   }, [stopRecording]);
@@ -316,6 +342,7 @@ export function useVoiceRecorder({
     elapsedMs,
     levels,
     isWarning: elapsedMs >= VOICE_WARN_SEC * 1000,
+    debugReading,
     start,
     finish,
     cancel,

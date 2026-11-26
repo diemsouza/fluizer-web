@@ -43,13 +43,13 @@ A frase de uso nunca é a tradução do enunciado nem repete a instrução dada 
 Em wrong e partial, o termo em destaque é sempre a resposta correta esperada, nunca o que o usuário respondeu.
 Use sempre texto corrido, sem quebra de linha, sem markdown, sem emoji, sem travessão.
 
-answer_language: o idioma em que a resposta do usuário está escrita, independente de estar certa: "en" para inglês, "pt" para português. "unclear" quando não dá para afirmar: resposta de uma ou duas palavras que existem nos dois idiomas, mistura de idiomas, só número, sim/não, ok, ou resposta em branco. Na dúvida, "unclear".
+answer_language: o idioma em que a resposta do usuário está escrita, independente de estar certa: "en" para inglês, "pt" para português, "other" para qualquer outro idioma (espanhol, coreano, etc.). "unclear" quando não dá para afirmar: resposta de uma ou duas palavras que existem nos dois idiomas, mistura de idiomas, só número, sim/não, ok, ou resposta em branco. Na dúvida, "unclear".
 
 {tip}
 
 ## Output
 Retorne APENAS UM JSON válido. Sem markdown, sem cercas de código (```), sem texto antes ou depois.
-{"status": "right | partial | wrong", "feedback_text": "...", "feedback_translation": "...", "right_answer": "...", "user_unknown": true | false, "answer_language": "en | pt | unclear", "eval_tip_class": "...", "eval_tip": "..."}
+{"status": "right | partial | wrong", "feedback_text": "...", "feedback_translation": "...", "right_answer": "...", "user_unknown": true | false, "answer_language": "en | pt | other | unclear", "eval_tip_class": "...", "eval_tip": "..."}
 
 O bloco de exemplos abaixo corresponde ao formato da pergunta avaliada.
 

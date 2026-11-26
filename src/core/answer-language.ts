@@ -7,16 +7,17 @@ import {
 } from "../lib/constants";
 
 export type AnswerLanguage = "en" | "pt";
+export type DetectedLanguage = AnswerLanguage | "other";
 
 export type VoicePass = {
   text: string;
-  language: AnswerLanguage | null;
+  language: DetectedLanguage | null;
   avgLogprob: number | null;
 };
 
 export type VoiceLanguageResult = {
   text: string;
-  language: AnswerLanguage | null;
+  language: DetectedLanguage | null;
   isMismatch: boolean;
 };
 
@@ -27,7 +28,7 @@ export function getExpectedAnswerLanguage(
 }
 
 export function needsForcedVoicePass(
-  detected: AnswerLanguage | null,
+  detected: DetectedLanguage | null,
   expected: AnswerLanguage | null,
 ): boolean {
   return !!expected && !!detected && detected !== expected;
@@ -64,7 +65,9 @@ export function isAnswerLanguageMismatch(
 ): boolean {
   return (
     !!expected &&
-    (answerLanguage === "en" || answerLanguage === "pt") &&
+    (answerLanguage === "en" ||
+      answerLanguage === "pt" ||
+      answerLanguage === "other") &&
     answerLanguage !== expected
   );
 }

@@ -1,11 +1,14 @@
 import { audioExtensionForMime } from "../core/voice-note";
-import type { AnswerLanguage } from "../core/answer-language";
+import type {
+  AnswerLanguage,
+  DetectedLanguage,
+} from "../core/answer-language";
 
 type TranscribeResult = {
   text: string;
   duration: number | null;
   format: string;
-  language: AnswerLanguage | null;
+  language: DetectedLanguage | null;
   avgLogprob: number | null;
 };
 
@@ -25,6 +28,13 @@ const WHISPER_LANGUAGE_NAMES: Record<string, AnswerLanguage> = {
   english: "en",
   portuguese: "pt",
 };
+
+// Idioma fora de en/pt vira "other" e nao null: o Whisper as vezes escreve a
+// fala curta em outro idioma (ex: coreano) e isso precisa da passada forcada.
+function mapWhisperLanguage(language: string | undefined): DetectedLanguage | null {
+  if (!language) return null;
+  return WHISPER_LANGUAGE_NAMES[language.toLowerCase()] ?? "other";
+}
 
 function averageLogprob(segments: WhisperSegment[] | undefined): number | null {
   const scored = (segments ?? []).filter(
@@ -70,7 +80,7 @@ export async function transcribeAudio(
     text: data.text,
     duration: data.duration ?? null,
     format: ext,
-    language: WHISPER_LANGUAGE_NAMES[data.language?.toLowerCase() ?? ""] ?? null,
+    language: mapWhisperLanguage(data.language),
     avgLogprob: averageLogprob(data.segments),
   };
 }

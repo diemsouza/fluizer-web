@@ -14,12 +14,17 @@ import {
   MEDIA_TYPE,
 } from "../lib/constants";
 import { buildMediaPath } from "../lib/utils";
-import { audioExtensionForMime, baseMimeType } from "../core/voice-note";
+import {
+  audioExtensionForMime,
+  baseMimeType,
+  isVoiceNoteTooShort,
+} from "../core/voice-note";
 import {
   getExpectedAnswerLanguage,
   needsForcedVoicePass,
   resolveVoiceLanguage,
   type AnswerLanguage,
+  type DetectedLanguage,
   type VoicePass,
 } from "../core/answer-language";
 import type { IncomingMessage } from "../types/domain";
@@ -32,7 +37,7 @@ export type StoredVoiceNote = {
 };
 
 type LanguageCheck = {
-  autoLanguage: AnswerLanguage | null;
+  autoLanguage: DetectedLanguage | null;
   autoLogprob: number | null;
   forcedLogprob: number | null;
 };
@@ -40,7 +45,7 @@ type LanguageCheck = {
 type TranscribedVoiceNote = {
   text: string;
   duration: number | null;
-  language: AnswerLanguage | null;
+  language: DetectedLanguage | null;
   isLanguageMismatch: boolean;
   languageCheck: LanguageCheck | null;
 };
@@ -79,17 +84,32 @@ async function transcribeForcedPass(
   }
 }
 
-// Falha do Whisper segue com transcricao vazia: o fluxo responde pedindo
-// para gravar de novo em vez de deixar o usuario sem retorno.
+function untranscribedVoiceNote(duration: number | null): TranscribedVoiceNote {
+  return {
+    text: "",
+    duration,
+    language: null,
+    isLanguageMismatch: false,
+    languageCheck: null,
+  };
+}
+
+// Falha do Whisper e audio curto demais seguem com transcricao vazia: o fluxo
+// responde pedindo para gravar de novo em vez de deixar o usuario sem retorno.
 async function transcribeVoiceNote(
   voiceNote: StoredVoiceNote,
   expectedLanguage: AnswerLanguage | null,
 ): Promise<TranscribedVoiceNote> {
+  const fileDuration = await readAudioDuration(
+    voiceNote.buffer,
+    voiceNote.contentType,
+  );
+  if (isVoiceNoteTooShort(fileDuration)) {
+    return untranscribedVoiceNote(fileDuration);
+  }
   try {
     const auto = await transcribeAudio(voiceNote.buffer, voiceNote.contentType);
-    const duration =
-      auto.duration ??
-      (await readAudioDuration(voiceNote.buffer, voiceNote.contentType));
+    const duration = auto.duration ?? fileDuration;
     if (!expectedLanguage || !needsForcedVoicePass(auto.language, expectedLanguage)) {
       return {
         text: auto.text.trim(),
@@ -114,13 +134,7 @@ async function transcribeVoiceNote(
     };
   } catch (err) {
     console.error("[transcribeVoiceNote] failed:", voiceNote.mediaId, err);
-    return {
-      text: "",
-      duration: null,
-      language: null,
-      isLanguageMismatch: false,
-      languageCheck: null,
-    };
+    return untranscribedVoiceNote(fileDuration);
   }
 }
 

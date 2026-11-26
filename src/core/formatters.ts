@@ -1053,7 +1053,7 @@ function formatAudioQuestion(
 
 export function formatVoiceNoteInaudible(): FormattedMessage {
   return {
-    text: "Não foi possível ouvir o áudio. Grave de novamente ou responda digitando.",
+    text: "Não foi possível ouvir o áudio. Grave novamente ou responda digitando.",
   };
 }
 
@@ -1062,12 +1062,20 @@ const ANSWER_LANGUAGE_NAMES: Record<AnswerLanguage, string> = {
   pt: "português",
 };
 
+// Sem idioma detectado ou com um idioma fora de en/pt, a mensagem nao diz em
+// que idioma a resposta veio.
 export function formatAnswerLanguageMismatch(
   expected: AnswerLanguage,
+  detected?: string,
 ): FormattedMessage {
   const wrong = expected === "en" ? "pt" : "en";
+  const expectedName = ANSWER_LANGUAGE_NAMES[expected];
+  const opening =
+    detected === "other"
+      ? `Essa resposta não veio em ${expectedName}.`
+      : `Essa resposta veio em ${ANSWER_LANGUAGE_NAMES[wrong]}.`;
   return {
-    text: `Essa resposta veio em ${ANSWER_LANGUAGE_NAMES[wrong]}. Responda em ${ANSWER_LANGUAGE_NAMES[expected]} para continuar.`,
+    text: `${opening} Responda em ${expectedName} para continuar.`,
   };
 }
 
