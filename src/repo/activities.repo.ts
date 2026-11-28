@@ -122,6 +122,24 @@ export async function findCurrentActivityByUser(
   });
 }
 
+export async function findOpenActivitiesByUser(
+  userId: string,
+): Promise<Activity[]> {
+  return prisma.activity.findMany({
+    where: { userId, status: { in: ["active", "paused"] }, deletedAt: null },
+  });
+}
+
+export async function incrementActivityQuestionCount(
+  id: string,
+  userId: string,
+): Promise<void> {
+  await prisma.activity.updateMany({
+    where: { id, userId, deletedAt: null },
+    data: { questionCount: { increment: 1 } },
+  });
+}
+
 export async function updateActivity(
   id: string,
   userId: string,

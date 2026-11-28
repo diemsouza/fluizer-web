@@ -123,11 +123,9 @@ export function parseMessage(
   const firstWordCommand = resolveCommand(firstWord);
 
   if (firstWordCommand === "pause") {
-    const num = parseInt(rest.join(" "), 10);
     return {
-      intent: "pause_activity",
+      intent: context.isIntensiveMode ? "pause_practice" : "pause_activity",
       raw,
-      docIndex: isNaN(num) ? undefined : num,
     };
   }
 
@@ -139,6 +137,9 @@ export function parseMessage(
       docIndex: isNaN(num) ? undefined : num,
     };
   }
+
+  // Com barra a intencao era um comando: erro de digitacao nunca vira resposta.
+  if (trimmed.startsWith("/")) return { intent: "unknown_command", raw };
 
   return { intent: "free_text", raw, content: trimmed };
 }

@@ -169,7 +169,7 @@ export async function generateDocSections(params: {
 // ─── Topic validation ─────────────────────────────────────────────────────────
 
 const TOPIC_VALIDATION_ERROR_REASON =
-  "Não foi possível usar esse assunto. Tente outro assunto.";
+  "Não foi possível usar esse assunto. Escolha outro.";
 
 export async function generateTopicValidation(params: {
   level: Level;
@@ -636,8 +636,6 @@ export async function generateAnswerEvaluation(params: {
   question: string;
   answerKeys: string[];
   userAnswer: string;
-  attemptCount: number;
-  docContent: string;
   feedbackExamples: string;
   contentOrigin: DocSource;
   questionFormat: string;
@@ -652,8 +650,6 @@ export async function generateAnswerEvaluation(params: {
     question,
     answerKeys,
     userAnswer,
-    attemptCount,
-    docContent,
     feedbackExamples,
     contentOrigin,
     questionFormat,
@@ -685,19 +681,14 @@ export async function generateAnswerEvaluation(params: {
   let userPrompt = `Pergunta: {question}
 Formato: {question_format}
 Respostas válidas: {answer_keys}
-Tentativas: {attempt_count}
 Nível do inglês: {level}
 Resposta do usuário: {user_answer}`
     .replace("{question}", question)
     .replace("{answer_keys}", answerKeys.join(", "))
     .replace("{user_answer}", userAnswer)
-    .replace("{attempt_count}", String(attemptCount))
     .replace("{level}", level)
     .replace("{question_format}", questionFormat);
 
-  userPrompt += questionFormat.includes("open_text")
-    ? `Contexto do material:\n${docContent.slice(0, 1000)}`
-    : "";
   userPrompt += imageContext ? formatImageContext(imageContext) : "";
 
   try {

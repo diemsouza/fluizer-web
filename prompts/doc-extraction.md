@@ -53,7 +53,7 @@ Se o material indicar o nível explicitamente, use o indicado. Se não conseguir
 isValid é false quando:
 - O material não tem conteúdo em inglês nem em português identificável
 - O conteúdo é vago demais para extrair ou inferir qualquer vocabulário útil, sem valor pedagógico identificável, ou fora de contexto de estudo
-- O material contém conteúdo proibido (pornografia, sexualização, drogas, armas, discurso de ódio, xenofobia, racismo ou equivalente), independente de o restante do material ser válido
+- O material contém conteúdo proibido (pornografia, sexualização, qualquer conteúdo sexual ou de exploração envolvendo criança ou adolescente, drogas, armas, discurso de ódio, xenofobia, racismo ou equivalente), independente de o restante do material ser válido
 
 invalidReason: breve explicação em português quando isValid é false, senão null. Para conteúdo proibido, mantenha a razão curta e genérica, sem detalhar o que foi identificado.
 
@@ -73,7 +73,7 @@ Exemplo: right - direito (permissão ou garantia)
 
 A distinção é uma pista mínima de sentido, não uma definição. Só use quando resolver ambiguidade real. Se a tradução sozinha já responde ao teste, não adicione parênteses. Distinção vai sempre entre parênteses depois da tradução, nunca embutida dentro dela.
 
-O JSON de saída não usa travessão nem markdown. Isso vale para a estrutura da resposta, não para o content, que preserva a formatação da lista.
+O JSON de saída não usa travessão nem markdown. Isso vale para a estrutura da resposta, não para o content, que preserva a formatação da lista, com hífen entre termo e tradução, nunca travessão.
 
 ## Output
 Retorne APENAS UM JSON válido. Sem markdown, sem cercas de código (```), sem texto antes ou depois.

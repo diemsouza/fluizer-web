@@ -1,4 +1,4 @@
-import { startOfDay } from "date-fns";
+import { startOfUserDay } from "../lib/datetime-utils";
 import { Activity, Doc, DocType, Level, User } from "../lib/prisma";
 import {
   ActivityRequestControls,
@@ -55,7 +55,7 @@ import {
   incrementUserMessageCount,
 } from "../repo/daily-usage.repo";
 import {
-  archiveOrCancelActivity,
+  archiveOpenActivities,
   buildPreviousActivitySummary,
 } from "./activity-service";
 import { sendAndSaveMessage, waitBeforeSend } from "./message-sender-service";
@@ -94,12 +94,12 @@ export type MaterialActivityOutcome =
 type ResolvedMaterialItem = MaterialItemInput & { text: string };
 
 export async function checkCanCreateActivity(
-  user: Pick<User, "id" | "planStatus" | "planExpiresAt">,
+  user: Pick<User, "id" | "planStatus" | "planExpiresAt" | "timezone">,
 ): Promise<ActivityCreationBlock | null> {
   if (!canPractice(user)) return { status: "plan_expired" };
   const activityCount = await getTodayActivityCount(
     user.id,
-    startOfDay(new Date()),
+    startOfUserDay(new Date(), user.timezone),
   );
   if (!canStartActivity(activityCount)) return { status: "daily_limit" };
   if (await isActivityBeingCreated(user.id, new Date())) {
@@ -109,12 +109,30 @@ export async function checkCanCreateActivity(
 }
 
 export async function prepareTextActivity(
-  user: Pick<User, "id" | "planStatus" | "planExpiresAt">,
+  user: Pick<User, "id" | "planStatus" | "planExpiresAt" | "timezone">,
   controls: ActivityRequestControls,
 ): Promise<TextActivityRequestOutcome> {
   const block = await checkCanCreateActivity(user);
   if (block) return block;
 
+  // Marca antes da LLM: um segundo pedido durante a extracao ja cai em
+  // already_creating, em vez de criar outra atividade junto.
+  await markUserActivityCreating(user.id);
+  let outcome: TextActivityRequestOutcome;
+  try {
+    outcome = await resolveTextActivityRequest(user.id, controls);
+  } catch (err) {
+    await clearUserActivityCreating(user.id);
+    throw err;
+  }
+  if (outcome.status !== "created") await clearUserActivityCreating(user.id);
+  return outcome;
+}
+
+async function resolveTextActivityRequest(
+  userId: string,
+  controls: ActivityRequestControls,
+): Promise<TextActivityRequestOutcome> {
   // Sugestao pronta e nao editada ja carrega objetivo e assunto.
   const extraction = isUnchangedSuggestion(controls.text, controls.domainKey)
     ? null
@@ -122,7 +140,7 @@ export async function prepareTextActivity(
         text: controls.text.trim(),
         level: controls.level,
         domainHint: getDomainLabel(controls.domainKey),
-        userId: user.id,
+        userId,
       });
 
   if (extraction && !extraction.isAllowed) return { status: "blocked" };
@@ -135,13 +153,13 @@ export async function prepareTextActivity(
   }
 
   const request = resolveActivityRequest(controls, extraction);
-  await updateUserLevel(user.id, controls.level);
-  await markUserActivityCreating(user.id, request);
+  await updateUserLevel(userId, controls.level);
+  await markUserActivityCreating(userId, request);
   return { status: "created", request };
 }
 
 export async function prepareActivityRetry(
-  user: Pick<User, "id" | "planStatus" | "planExpiresAt">,
+  user: Pick<User, "id" | "planStatus" | "planExpiresAt" | "timezone">,
 ): Promise<
   ActivityCreationBlock | { status: "created"; request: ResolvedActivityRequest } | null
 > {
@@ -157,6 +175,7 @@ export async function createTextActivity(
   userId: string,
   request: ResolvedActivityRequest,
   channel: MessageChannel,
+  today: Date,
 ): Promise<void> {
   try {
     await sendAndSaveMessage({
@@ -164,7 +183,12 @@ export async function createTextActivity(
       userId,
       message: formatActivityCreating(),
     });
-    const created = await generateAndCreateActivity(userId, request, channel);
+    const created = await generateAndCreateActivity(
+      userId,
+      request,
+      channel,
+      today,
+    );
     if (!created) await sendActivityCreationFailed(userId, channel);
   } catch (err) {
     console.error(`[createTextActivity] user ${userId}`, err);
@@ -179,6 +203,7 @@ async function generateAndCreateActivity(
   userId: string,
   request: ResolvedActivityRequest,
   channel: MessageChannel,
+  today: Date,
 ): Promise<boolean> {
   const { domainKey, topic, level, focusKeys } = request;
   const domain = getDomainLabel(domainKey);
@@ -205,7 +230,7 @@ async function generateAndCreateActivity(
   if (data.content.trim().length === 0) return false;
 
   const doc = await createGeneratedDoc({ userId, request, subtopics, subtopic, data });
-  await startActivityForDoc(userId, doc, level, data, channel);
+  await startActivityForDoc(userId, doc, level, data, channel, today);
   return true;
 }
 
@@ -215,12 +240,17 @@ async function startActivityForDoc(
   level: Level,
   data: FocusContentResult,
   channel: MessageChannel,
+  today: Date,
 ): Promise<void> {
   const currentActivity = await findCurrentActivityByUser(userId);
-  if (currentActivity) {
-    await archiveOrCancelActivity(currentActivity, userId);
-  }
-  const activity = await createActivityForDoc(userId, doc.id, level, data);
+  await archiveOpenActivities(userId);
+  const activity = await createActivityForDoc(
+    userId,
+    doc.id,
+    level,
+    data,
+    today,
+  );
   await sendActivityCreatedConfirmation({
     userId,
     activity,
@@ -295,12 +325,12 @@ async function createActivityForDoc(
   docId: string,
   level: Level,
   data: FocusContentResult,
+  date: Date,
 ): Promise<Activity> {
   const now = new Date();
   const nextMessageAt = new Date(
     now.getTime() + FIRST_MESSAGE_INTERVAL_MIN * 60 * 1000,
   );
-  const date = new Date(now.getFullYear(), now.getMonth(), now.getDate());
 
   const questionLimit = calculatePoolSize(sanitizeText(data.content));
 
@@ -355,7 +385,7 @@ async function sendActivityCreatedConfirmation(params: {
 }
 
 export async function prepareMaterialActivity(
-  user: Pick<User, "id" | "planStatus" | "planExpiresAt">,
+  user: Pick<User, "id" | "planStatus" | "planExpiresAt" | "timezone">,
   level: Level,
   items: MaterialItemInput[],
 ): Promise<MaterialActivityOutcome> {
@@ -373,6 +403,7 @@ export async function prepareMaterialActivity(
   const { docId, latestDocItemId } = await createPendingMaterialDoc(
     user.id,
     resolved,
+    startOfUserDay(new Date(), user.timezone),
   );
   return { status: "created", docId, latestDocItemId };
 }
@@ -423,12 +454,12 @@ async function resolveMaterialItems(
 async function createPendingMaterialDoc(
   userId: string,
   items: ResolvedMaterialItem[],
+  today: Date,
 ): Promise<{ docId: string; latestDocItemId: string }> {
   const types = Array.from(new Set(items.map((item) => item.mediaType)));
   const docType: DocType = types.length === 1 ? types[0] : "mixed";
   const doc = await createDoc({ userId, docType, status: "pending" });
   const activity = await findCurrentActivityByUser(userId);
-  const today = startOfDay(new Date());
 
   let latestDocItemId = "";
   for (let index = 0; index < items.length; index++) {

@@ -36,7 +36,8 @@ import { SidebarFooter, useSidebar } from "@/src/components/ui/sidebar";
 import { canPractice, getDaysUntil } from "@/src/core/access";
 import { formatPhoneForDisplay } from "@/src/core/phone";
 import { postJson } from "@/src/lib/api-client";
-import { PLANS_PATH } from "@/src/lib/constants";
+import { PLANS_PATH, TRIAL_UPGRADE_HINT_DAYS } from "@/src/lib/constants";
+import { Button } from "@/src/components/ui/button";
 import type { User } from "@/src/lib/prisma";
 import { useReminderFlow } from "./reminder-flow-provider";
 import { useProfileLevel } from "./profile-level-provider";
@@ -51,6 +52,11 @@ function planLabel(user: User, t: TAnyEnv): string {
   return daysLeft > 0
     ? t("plan_trial_days_left", { days: daysLeft })
     : t("plan_trial_expired");
+}
+
+function isTrialEnding(user: User): boolean {
+  if (user.planCode !== "trial") return false;
+  return getDaysUntil(user.planExpiresAt, new Date()) <= TRIAL_UPGRADE_HINT_DAYS;
 }
 
 // E-mail só é gravado pelo login com Google; sem ele, a conta entrou pelo WhatsApp.
@@ -92,6 +98,13 @@ export function SidebarFooterMenu({
 
   return (
     <SidebarFooter className="pb-[max(0.75rem,calc(env(safe-area-inset-bottom)-0.75rem))]">
+      {showLabel && isTrialEnding(user) && (
+        <Button asChild size="compact" variant="outline" className="w-full">
+          <Link href={PLANS_PATH} onClick={() => setOpenMobile(false)}>
+            {t("trial_upgrade_cta")}
+          </Link>
+        </Button>
+      )}
       <DropdownMenu modal={false}>
         <DropdownMenuTrigger className="flex h-11 w-full items-center gap-2 rounded-control px-1.5 text-left hover:bg-sidebar-accent">
           <Avatar className="h-8 w-8 shrink-0">

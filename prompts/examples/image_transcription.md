@@ -40,7 +40,7 @@ validação:
 ### feedback
 fórmula: uma única frase em EN que descreve a cena da imagem usando o termo de right_answer.
 
-nota: Grafia do termo idêntica à de right_answer. Em right, é a frase do usuário corrigida, mantendo o que ele trouxe de certo; se ele respondeu só a palavra, uma frase com ela e um detalhe da cena. Em wrong ou partial, frase modelo com o primeiro item de answerKeys. No básico, frase curta de até 8 palavras, presente, vocabulário elementar e um só detalhe. Correção de outros erros e elogio a extras vão em feedback_note, nunca no feedback_text.
+nota: Grafia do termo idêntica à de right_answer. Em right, é a frase do usuário corrigida, mantendo o que ele trouxe de certo; se ele respondeu só a palavra, uma frase com ela e um detalhe da cena. Em wrong ou partial, frase modelo com o primeiro item de answerKeys. No básico, frase curta de até 8 palavras, presente, vocabulário elementar e um só detalhe. Correção de outros erros e citação dos extras corretos vão em feedback_note, nunca no feedback_text.
 
 exemplo (quiet morning):
 - It's a quiet morning by the window.
@@ -98,7 +98,7 @@ validação:
 ### feedback
 fórmula: uma única frase completa em EN que descreve a cena da imagem usando o termo de right_answer.
 
-nota: Grafia do termo idêntica à de right_answer. Em right, é a frase do usuário corrigida, mantendo o que ele trouxe de certo. Em wrong ou partial, frase modelo com o primeiro item de answerKeys. Correção de outros erros e elogio a extras vão em feedback_note, nunca no feedback_text.
+nota: Grafia do termo idêntica à de right_answer. Em right, é a frase do usuário corrigida, mantendo o que ele trouxe de certo. Em wrong ou partial, frase modelo com o primeiro item de answerKeys. Correção de outros erros e citação dos extras corretos vão em feedback_note, nunca no feedback_text.
 
 exemplo (sharing a post):
 - The person is sharing a post from the park.
@@ -150,7 +150,7 @@ validação:
 ### feedback
 fórmula: uma única frase completa em EN que descreve a cena da imagem usando o termo de right_answer.
 
-nota: Grafia do termo idêntica à de right_answer. Em right, é a frase do usuário corrigida, mantendo o que ele trouxe de certo. Em wrong ou partial, frase modelo natural com o primeiro item de answerKeys. Correção de outros erros e elogio a extras vão em feedback_note, nunca no feedback_text.
+nota: Grafia do termo idêntica à de right_answer. Em right, é a frase do usuário corrigida, mantendo o que ele trouxe de certo. Em wrong ou partial, frase modelo natural com o primeiro item de answerKeys. Correção de outros erros e citação dos extras corretos vão em feedback_note, nunca no feedback_text.
 
 exemplo (leaning against):
 - The person is leaning against the wall, waiting for someone.

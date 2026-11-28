@@ -6,8 +6,9 @@ import {
   GOOGLE_OAUTH_COOKIE_NAME,
 } from "@/src/core/google-oauth-state";
 import { startGoogleLogin } from "@/src/services/google-login-service";
+import { isValidTimeZone } from "@/src/core/timezone";
 
-const TimezoneSchema = z.string().trim().min(1).max(64);
+const TimezoneSchema = z.string().trim().max(64).refine(isValidTimeZone);
 
 export async function GET(request: NextRequest): Promise<Response> {
   const { searchParams } = request.nextUrl;

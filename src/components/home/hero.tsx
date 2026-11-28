@@ -84,6 +84,7 @@ export default function Hero() {
 
       <div className="flex flex-col items-center gap-y-2 pt-1">
         <HomeCTA
+          position="hero"
           waLabel={t("hero.cta")}
           buttonClassName="px-12 gap-2"
           isCtaAnchor

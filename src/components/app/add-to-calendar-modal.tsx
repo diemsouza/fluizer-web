@@ -24,6 +24,7 @@ import {
   SelectValue,
 } from "@/src/components/ui/select";
 import { postJson } from "@/src/lib/api-client";
+import { track, type ReminderChannel } from "@/src/lib/analytics";
 import { getDailyReminderTimeSlots } from "@/src/core/daily-reminder-time";
 import {
   buildGoogleCalendarUrl,
@@ -34,8 +35,6 @@ import { LogoGoogle } from "@/src/components/icons";
 import { useToast } from "@/src/hooks/use-toast";
 
 const ICS_FILE_NAME = "fluizer-pratica-diaria.ics";
-
-export type ReminderChannel = "whatsapp" | "email";
 
 function downloadIcsFile(content: string): void {
   const blob = new Blob([content], { type: "text/calendar;charset=utf-8" });
@@ -124,6 +123,7 @@ export function AddToCalendarModal({
       });
       return;
     }
+    if (enabled && !savedEnabled) track("reminder_enabled", { channel });
     setSavedEnabled(enabled);
     setSavedTime(time);
     router.refresh();

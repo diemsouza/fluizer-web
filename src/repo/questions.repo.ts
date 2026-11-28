@@ -10,6 +10,7 @@ import {
   Prisma,
 } from "../lib/prisma";
 import { prisma } from "../lib/prisma";
+import { runSerializable } from "./serializable";
 import {
   readQuestionRating,
   type QuestionRatingMark,
@@ -79,15 +80,16 @@ export async function findQuestionScoresByActivity(
 }
 
 export async function findNextUnansweredQuestion(
-  docId: string,
+  activityId: string,
   lastQuestionId: string | null,
 ): Promise<Question | null> {
   return prisma.question.findFirst({
     where: {
+      activityId,
       deletedAt: null,
       status: null,
       ...(lastQuestionId ? { NOT: { id: lastQuestionId } } : {}),
-      activity: { docId, deletedAt: null },
+      activity: { deletedAt: null },
     },
     orderBy: { createdAt: "asc" },
   });
@@ -299,6 +301,23 @@ export async function findQuestionsEligibleForAudioCleanup(
     },
     orderBy: { createdAt: "asc" },
     take: limit,
+  });
+}
+
+// Le e grava na mesma transacao: dois incrementos ao mesmo tempo nao se perdem.
+export async function updateQuestionMetadata(
+  id: string,
+  change: (
+    current: Prisma.JsonValue | null,
+  ) => { metadata: Prisma.InputJsonObject; score: number },
+): Promise<void> {
+  await runSerializable(async (tx) => {
+    const question = await tx.question.findFirst({
+      where: { id, deletedAt: null },
+      select: { metadata: true },
+    });
+    if (!question) return;
+    await tx.question.update({ where: { id }, data: change(question.metadata) });
   });
 }
 

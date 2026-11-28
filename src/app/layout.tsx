@@ -8,6 +8,9 @@ import QueryProvider from "@/src/components/QueryProvider";
 import { NextIntlClientProvider } from "next-intl";
 import { getLocale, getMessages, getTranslations } from "next-intl/server";
 import {
+  CONSENT_COOKIE_NAME,
+  OG_IMAGE_HEIGHT,
+  OG_IMAGE_WIDTH,
   SITE_URL,
   THEME_COLOR_DARK,
   THEME_COLOR_LIGHT,
@@ -15,6 +18,8 @@ import {
 import ClientToaster from "../components/shared/client-toaster";
 import { ThemeColorSync } from "../components/shared/ThemeColorSync";
 import { VisualViewportSync } from "../components/shared/visual-viewport-sync";
+import { CookieConsentBanner } from "../components/shared/cookie-consent-banner";
+import { buildConsentInitScript, isConsentChoice } from "@/src/lib/consent";
 
 const figtree = Figtree({
   subsets: ["latin"],
@@ -44,13 +49,10 @@ export async function generateMetadata(): Promise<Metadata> {
 
   return {
     metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL ?? SITE_URL),
-    title,
+    title: { default: title, template: "%s | Fluizer" },
     description,
     keywords: t("keywords"),
     robots: "index, follow",
-    alternates: {
-      canonical: SITE_URL,
-    },
     appleWebApp: {
       capable: true,
       statusBarStyle: "black-translucent",
@@ -60,12 +62,12 @@ export async function generateMetadata(): Promise<Metadata> {
       description,
       url: SITE_URL,
       siteName: "Fluizer",
-      images: [{ url: ogImage, width: 1200, height: 1200, alt: ogImageAlt }],
+      images: [{ url: ogImage, width: OG_IMAGE_WIDTH, height: OG_IMAGE_HEIGHT, alt: ogImageAlt }],
       locale: "pt_BR",
       type: "website",
     },
     twitter: {
-      card: "summary",
+      card: "summary_large_image",
       title,
       description,
       images: [{ url: ogImage, alt: ogImageAlt }],
@@ -82,6 +84,8 @@ export default async function RootLayout({
   const messages = await getMessages();
   const cookieStore = await cookies();
   const isDark = cookieStore.get("theme")?.value === "dark";
+  const savedConsent = cookieStore.get(CONSENT_COOKIE_NAME)?.value;
+  const consentChoice = isConsentChoice(savedConsent) ? savedConsent : undefined;
 
   return (
     <html
@@ -104,7 +108,7 @@ export default async function RootLayout({
             strategy="afterInteractive"
             id="script_gtm"
             dangerouslySetInnerHTML={{
-              __html: `(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
+              __html: `${buildConsentInitScript(consentChoice)}(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
         new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
         j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
         'https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);
@@ -133,6 +137,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe>`,
             <VisualViewportSync />
             <QueryProvider>
               <ClientToaster />
+              {!consentChoice && <CookieConsentBanner />}
               {children}
             </QueryProvider>
           </ThemeProvider>

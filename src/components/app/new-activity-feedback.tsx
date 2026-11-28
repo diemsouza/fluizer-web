@@ -1,8 +1,10 @@
 "use client";
 
+import { useEffect } from "react";
 import Link from "next/link";
 import { useTranslations } from "next-intl";
 import { PLANS_PATH } from "@/src/lib/constants";
+import { track } from "@/src/lib/analytics";
 import type { NewActivityFeedback } from "./new-activity-outcome";
 
 export function NewActivityFeedbackView({
@@ -13,12 +15,18 @@ export function NewActivityFeedbackView({
   onExampleClick?: (example: string) => void;
 }) {
   const t = useTranslations("app.new_activity");
+  const isPlanExpired =
+    feedback.kind === "error" && feedback.messageKey === "plan_expired";
+
+  useEffect(() => {
+    if (isPlanExpired) track("paywall_view", { reason: "plan_expired" });
+  }, [isPlanExpired]);
 
   if (feedback.kind === "error") {
     return (
       <p role="alert" className="mt-2 text-sm text-destructive">
         {t(`errors.${feedback.messageKey}`)}{" "}
-        {feedback.messageKey === "plan_expired" && (
+        {isPlanExpired && (
           <Link href={PLANS_PATH} className="font-medium underline">
             {t("plans_link")}
           </Link>

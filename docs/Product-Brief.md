@@ -113,7 +113,7 @@ Ao subir novo material ou concluir o fluxo de nova atividade, o usuário recebe 
 ### Onboarding
 
 ```
-Hi 👋 Bem-vindo a Fluizer.
+Olá 👋 Boas-vindas ao Fluizer.
 
 Pratique inglês no seu ritmo, sobre o que fizer sentido pra você.
 

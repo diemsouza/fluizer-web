@@ -1,10 +1,14 @@
 import { requireAuth } from "@/src/lib/auth/current-user";
 import { UnauthorizedError } from "@/src/lib/custom-errors";
 import { extractMaterialFile } from "@/src/services/material-extract-service";
+import { canPractice } from "@/src/core/access";
 
 export async function POST(request: Request): Promise<Response> {
   try {
     const user = await requireAuth();
+    if (!canPractice(user)) {
+      return Response.json({ ok: false, code: "plan_expired" }, { status: 403 });
+    }
 
     let formData: FormData;
     try {

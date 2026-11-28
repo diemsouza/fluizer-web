@@ -3,10 +3,8 @@
 import { createContext, useCallback, useContext, useMemo, useState } from "react";
 import { useTranslations } from "next-intl";
 import { PhoneConfirmModal } from "@/src/components/shared/phone-confirm-modal";
-import {
-  AddToCalendarModal,
-  type ReminderChannel,
-} from "./add-to-calendar-modal";
+import type { ReminderChannel } from "@/src/lib/analytics";
+import { AddToCalendarModal } from "./add-to-calendar-modal";
 
 type ReminderFlowContextValue = {
   openReminder: () => void;

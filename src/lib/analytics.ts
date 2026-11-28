@@ -1,7 +1,17 @@
-import { SubscriptionInterval } from "./constants";
+import type { DomainId, SubscriptionInterval } from "./constants";
 
 export type AuthMethod = "phone" | "whatsapp" | "google";
 export type CheckoutPlan = "monthly" | "annual";
+export type CtaPosition =
+  | "hero"
+  | "simulator"
+  | "simulator_reply"
+  | "features"
+  | "pricing"
+  | "faq"
+  | "floating";
+export type ActivitySource = "text" | "material";
+export type ReminderChannel = "whatsapp" | "email";
 
 export const CHECKOUT_PLAN_BY_INTERVAL: Record<
   SubscriptionInterval,
@@ -28,6 +38,16 @@ export type AnalyticsEventMap = {
     currency: "BRL";
     items: PurchaseItem[];
   };
+  cta_click: { position: CtaPosition; domain?: DomainId };
+  simulator_tab: { domain: DomainId };
+  activity_created: { source: ActivitySource; domain?: DomainId };
+  // Primeira resposta avaliada de cada atividade (guia pos-primeiro-feedback).
+  activity_first_answer: Record<string, never>;
+  paywall_view: { reason: "plan_expired" };
+  view_plans: Record<string, never>;
+  phone_confirmed: Record<string, never>;
+  reminder_enabled: { channel: ReminderChannel };
+  blog_cta_click: { slug: string; variant: string };
 };
 
 function pushToDataLayer(entry: Record<string, unknown>): void {

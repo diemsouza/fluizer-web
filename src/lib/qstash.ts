@@ -9,14 +9,6 @@ function getClient(): Client {
   return _client;
 }
 
-export async function publishDocProcessing(
-  docId: string,
-  userId: string,
-): Promise<void> {
-  const url = `${process.env.NEXT_PUBLIC_APP_URL}/api/queue/process-doc`;
-  await getClient().publishJSON({ url, body: { docId, userId } });
-}
-
 export async function publishResumeSummary(params: {
   userId: string;
   leavingActivityId: string | null;

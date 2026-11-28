@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   buildAnsweredInteractive,
+  parseMessage,
   resolveSelectedButtonId,
 } from "./parser";
 
@@ -57,5 +58,22 @@ describe("buildAnsweredInteractive", () => {
       ...interactive,
       disabled: true,
     });
+  });
+});
+
+describe("parseMessage", () => {
+  it("texto com barra que não é comando vira unknown_command", () => {
+    expect(parseMessage("/praticr").intent).toBe("unknown_command");
+    expect(parseMessage("/nivel basico").intent).toBe("unknown_command");
+  });
+
+  it("comando certo segue reconhecido", () => {
+    expect(parseMessage("/praticar").intent).toBe("practice_now");
+    expect(parseMessage("/pausar 2").intent).toBe("pause_activity");
+  });
+
+  it("barra no meio do texto segue texto comum", () => {
+    expect(parseMessage("and/or").intent).toBe("free_text");
+    expect(parseMessage("praticar").intent).toBe("free_text");
   });
 });

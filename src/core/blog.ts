@@ -16,6 +16,8 @@ export const BLOG_POST_ORDER = [
 ] as const;
 
 export const BLOG_PATH = "/blog";
+// Marca o link do BlogCta para o BlogCtaTracker medir o clique.
+export const BLOG_CTA_ATTR = "data-blog-cta";
 export const BLOG_COVER_WIDTH = 1200;
 export const BLOG_COVER_HEIGHT = 630;
 

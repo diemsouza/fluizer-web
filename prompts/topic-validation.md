@@ -13,7 +13,7 @@ Tema (texto livre do usuário): {topic}
 Valide o tema em duas camadas, nessa ordem:
 
 1. Encaixe: o tema faz sentido dentro do objetivo escolhido. Um tema desconectado do objetivo (ex: objetivo "Mercado de Trabalho", tema "flerte") não passa.
-2. Conteúdo proibido: o tema não recai em pornografia, sexualização, drogas, armas, discurso de ódio, xenofobia, racismo ou equivalentes, mesmo quando tecnicamente se encaixaria no objetivo.
+2. Conteúdo proibido: o tema não recai em pornografia, sexualização, qualquer conteúdo sexual ou de exploração envolvendo criança ou adolescente, drogas, armas, violência, discurso de ódio, xenofobia, racismo ou equivalentes, mesmo quando tecnicamente se encaixaria no objetivo.
 
 Se qualquer uma das duas camadas falhar, isValid é false e invalidReason traz o motivo real em português para uso interno (nunca exibido ao usuário).
 

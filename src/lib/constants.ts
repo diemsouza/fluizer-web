@@ -101,9 +101,11 @@ export const INTENSIVE_UNTIL_MIN = 15;
 // - message-service.ts: parada depois do feedback e pausas antes dela
 // - formatters.ts: formatGuideAfterFirstFeedback volta a citar Praticar
 // - practice-pill.ts: canContinue fica sempre false, so os icones aparecem
+// - limits.ts: canPracticeToday volta a aplicar o teto INTENSIVE_LIMIT
 export const AUTO_QUESTION_ENABLED = false;
 export const CONTINUE_PRACTICE_BUTTON_ID = "continue_practice";
-// Teto do turno em andamento: se o fim do turno se perder, o Continuar volta.
+// Teto do turno em andamento: se o fim do turno se perder, o Continuar volta e
+// a trava de mensagem duplicada (claimUserTurn) libera.
 export const PRACTICE_TURN_MAX_SEC = 60;
 // Trava do cliente enquanto espera resposta (nao e o "digitando", que vem do
 // servidor): cobre avaliacao + intervalo pos-feedback + geracao de imagem.
@@ -113,10 +115,23 @@ export const DAILY_PRACTICE_LIMIT = 60;
 export const CADENCE_RESERVE = 24;
 export const INTENSIVE_LIMIT = 60 - 24; // 36
 export const TRIAL_DAYS = 7;
+// A partir de quantos dias restantes o rotulo do trial na sidebar vira link para os planos.
+export const TRIAL_UPGRADE_HINT_DAYS = 2;
 // Folga curta: cobre a cobrança de renovação, que a Stripe faz ~1-2h depois do
 // fim do período, e falha de rede; mais que isso paga IA para quem não pagou.
 export const PAYMENT_GRACE_DAYS = 1;
 export const SITE_URL = "https://fluizer.com";
+export const OG_IMAGE_WIDTH = 1200;
+export const OG_IMAGE_HEIGHT = 630;
+// Mesma data do "Ultima atualizacao" de /terms e /privacy; mudar junto.
+export const LEGAL_PAGES_UPDATED_AT = "2026-11-27";
+export const CONTACT_EMAIL = "hello@fluizer.com";
+export const CONTACT_PATH = "/contato";
+export const SOCIAL_PROFILES = {
+  instagram: "https://instagram.com/usefluizer",
+  linkedin: "https://linkedin.com/company/fluizer",
+  facebook: "https://facebook.com/fluizer",
+} as const;
 export const PAYMENT_PROVIDER = {
   STRIPE: "stripe",
 } as const;
@@ -190,6 +205,16 @@ export const VOICE_AUDIO_CONSTRAINTS: MediaTrackConstraints = {
   channelCount: 1,
 };
 export const VOICE_BITRATE = 64_000;
+// Sem cancelamento de eco o iOS entrega o microfone sem ganho (fala perto de
+// -20 dBFS de pico), muito abaixo do TTS. O limitador segura os gritos.
+export const VOICE_IOS_GAIN = 6;
+export const VOICE_LIMITER_OPTIONS = {
+  threshold: -6,
+  knee: 0,
+  ratio: 20,
+  attack: 0.003,
+  release: 0.25,
+};
 // So formatos que o player toca: Ogg/Opus (nativo ou remuxado do WebM) e
 // AAC em MP4 (Safari antes do 18.4).
 export const VOICE_ACCEPTED_CONTENT_TYPES = ["audio/ogg", "audio/mp4"];
@@ -203,10 +228,12 @@ export const MATERIAL_MAX_BYTES = 4 * 1024 * 1024;
 export const MATERIAL_ACCEPT =
   "image/*,application/pdf,text/plain,text/markdown,.txt,.md";
 export const ACTIVITY_TEXT_MAX_CHARS = 200;
+// Teto do texto extraido de cada arquivo de material, para PDF grande nao
+// virar uma extracao cara na LLM.
+export const MATERIAL_TEXT_MAX_CHARS = 30_000;
 // Janela em que um segundo pedido de criacao e recusado enquanto o primeiro gera.
 export const ACTIVITY_CREATING_TTL_MS = 2 * 60 * 1000;
 export const DOC_PENDING_TIMEOUT_MS = 5 * 60 * 1000;
-export const DOC_PROCESSING_TIMEOUT_MS = 5 * 60 * 1000;
 export const ONBOARDING_MESSAGE_INTERVAL_SEC = 2;
 export const DEFAULT_MESSAGE_INTERVAL_SEC = 4;
 export const AFTER_FEEDBACK_MESSAGE_INTERVAL_SEC = 8;
@@ -226,7 +253,6 @@ export const ANSWER_EMOJI = {
 
 export const ACTIVITY_SUGGESTION_EMOJI = "🔄";
 
-export const MESSAGE_SUPPRESSION_SEC = 10;
 export const MAX_RETRY_ATTEMPTS = 3;
 export const RETRY_DELAY_MS = 1000;
 
@@ -506,7 +532,18 @@ export const SITE_MESSAGE_PATTERNS: string[] = [SITE_WHATSAPP_MESSAGE];
 export const ATTRIBUTION_COOKIE_NAME = "fz_attribution";
 export const ATTRIBUTION_COOKIE_MAX_AGE_DAYS = 30;
 
+export const CONSENT_COOKIE_NAME = "fz_consent";
+export const CONSENT_COOKIE_MAX_AGE_DAYS = 365;
+export const CONSENT_CHOICE = {
+  GRANTED: "granted",
+  DENIED: "denied",
+} as const;
+export type ConsentChoice = (typeof CONSENT_CHOICE)[keyof typeof CONSENT_CHOICE];
+
 export const DEFAULT_PHONE_COUNTRY: CountryCode = "BR";
+
+// Igual ao default de users.timezone no Prisma.
+export const DEFAULT_TIMEZONE = "America/Sao_Paulo";
 
 // Celular sem o nono digito e fixo continuam aceitos (10 ou 11 digitos com
 // DDD), como antes da libphonenumber; o isValid() dela recusaria o primeiro.

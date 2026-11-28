@@ -36,6 +36,7 @@ export default function Pricing() {
           topNote={tPricing("home_trial_note", { days: TRIAL_DAYS })}
           renderCta={() => (
             <HomeCTA
+              position="pricing"
               waLabel={t("cta")}
               buttonClassName="w-full gap-2"
               isCtaAnchor

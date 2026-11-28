@@ -17,8 +17,7 @@ async function fileExists(filePath: string): Promise<boolean> {
   }
 }
 
-// So gera os exemplos cujo audio fica na pasta do blog; os que apontam para
-// outro audio (ex: o do simulador da home) sao ignorados.
+// So gera os exemplos cujo audio fica na pasta do blog.
 async function main(): Promise<void> {
   const outDir = path.join(process.cwd(), "public", BLOG_AUDIO_FOLDER_URL);
   await mkdir(outDir, { recursive: true });

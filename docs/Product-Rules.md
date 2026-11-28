@@ -45,28 +45,24 @@ Quando o usuário sobe um novo material ou conclui o fluxo de nova atividade, é
 **Formato do resumo:**
 
 ```
-Enquanto a próxima pergunta não chega, segue um resumo da atividade anterior.
+📊 Resumo da atividade: *{título}*
 
-Sua atividade anterior: *{título}*
+Em {duração}, você respondeu {respondidas} de {total} perguntas, {%}% de acerto entre as respondidas ({certas}, {parciais} e {erradas}), sendo {n} delas revisadas mais de uma vez antes de fixar. Ficaram {n} perguntas sem resposta.
 
-Período: {duração}
-Perguntas: {total gerado}
-Respondidas: {total respondido}
-Revisadas: {respondidas mais de uma vez}
-Corretas: {acertos}
-Erradas: {erros + parciais}
-
-{linha de leitura}
+{linha de leitura} {dica} Score: {score}
 ```
+
+Certas, parciais e erradas aparecem com singular/plural certos; parciais e erradas só quando houver.
 
 **Linha de leitura**, determinística, sem IA, tom seco:
 
-- Menos de 5 respondidas: "Você mal começou esse aqui."
-- 80%+ de acerto: "Mandou bem nessa atividade."
-- 50 a 79% de acerto: "Essa atividade rendeu, dá pra apertar mais."
-- Abaixo de 50%: "Essa atividade travou bastante. Vale revisar."
+- Menos de 5 respondidas: "Ainda no início dessa atividade." + "Não deu tempo de fixar esse conteúdo antes da troca de atividade."
+- 100% de acerto: "Todas as respostas saíram certas." + "Você fixou a maior parte desse conteúdo antes de trocar de atividade."
+- 80 a 99% de acerto: "Poucas respostas saíram erradas." + mesma dica do 100%.
+- 50 a 79% de acerto: "Resultado dividido entre certo e errado." + "Parte relevante desse conteúdo ficou sem fixar antes da troca."
+- Abaixo de 50%: "A maioria das respostas ainda saiu errada." + "A maior parte desse conteúdo ficou sem fixar antes da troca."
 
-Sem emoji. Sem elogio. Leitura de resultado.
+Sem emoji na linha de leitura (o 📊 fica só no cabeçalho). Sem elogio. Leitura de resultado.
 
 **Camada de imagem (pentágono de desempenho):** junto do texto do resumo vai uma imagem, um gráfico de radar de 5 eixos gerado por template (sem IA, sem custo de LLM por envio). Os eixos são os componentes que alimentam o cálculo de score (Seção 6.3), não o score em si; o score entra só como número na legenda. Eixos, todos normalizados 0 a 1 contra um teto natural:
 
@@ -242,8 +238,8 @@ O usuário vê uma cena (pessoas, objetos, cenário, ação, sem diálogo) e res
 - **Imagem:** gerada junto com a pergunta, a partir de uma descrição da cena: um sujeito principal, uma ação, poucos elementos, fundo limpo, sem nenhum texto, letra, placa, legenda ou número. Quando o termo depende de lugar ou situação, a cena mostra o que o torna evidente. Guardada como a do reconhecimento por imagem e reaproveitada em toda reexibição e revisão.
 - **Respostas válidas:** a geração devolve o termo e os equivalentes aceitos (ex: horror movie, scary movie, horror film).
 - **Sorteio e fallback:** mesmo peso dos demais, mesma fração de rollout do reconhecimento por imagem, sem restrição de vizinhança além da regra geral. Qualquer falha (item que não vira imagem, geração, imagem ou armazenamento) gera a pergunta em outro formato para o mesmo item, sem indicação ao usuário, e conta como aparição.
-- **Avaliação:** pelo mesmo fluxo e modelo dos demais formatos, com o avaliador vendo a imagem. Certo ou errado depende só do termo ou de um equivalente válido, e é isso que vai para o SM-2 e a nota. Outros erros da frase viram correção no feedback: no básico nunca derrubam o acerto; do intermediário para cima, quando a frase completa foi pedida, termo solto ou erro que muda o sentido ou a estrutura deixa a resposta parcial. No parcial por termo solto, o feedback não repete o termo depois da abertura (o usuário já o escreveu): mostra só a frase modelo, e a dica explica que era para responder com frase completa, com outra frase de exemplo, diferente da do feedback. Elementos extras corretos recebem elogio, mas nunca transformam erro em acerto.
-- **Feedback:** abertura de sempre e uma frase em inglês descrevendo a cena com o termo, com a descrição da cena e o item de origem como apoio do avaliador (em acerto, a frase do usuário corrigida; em erro, uma frase modelo; quando a resposta é só a palavra ou só sujeito e verbo, a frase ganha um detalhe real da cena, para frase e áudio serem úteis), seguida, quando houver, de uma linha curta em português com a correção do resto da frase e o elogio aos extras. Tradução, áudio de feedback e dica de erro seguem as regras atuais; a dica em acerto não vale (Seção 6.2).
+- **Avaliação:** pelo mesmo fluxo e modelo dos demais formatos, com o avaliador vendo a imagem. Certo ou errado depende só do termo ou de um equivalente válido, e é isso que vai para o SM-2 e a nota. Outros erros da frase viram correção no feedback: no básico nunca derrubam o acerto; do intermediário para cima, quando a frase completa foi pedida, termo solto ou erro que muda o sentido ou a estrutura deixa a resposta parcial. No parcial por termo solto, o feedback não repete o termo depois da abertura (o usuário já o escreveu): mostra só a frase modelo, e a dica explica que era para responder com frase completa, com outra frase de exemplo, diferente da do feedback. Elementos extras corretos são citados, sem elogio, mas nunca transformam erro em acerto.
+- **Feedback:** abertura de sempre e uma frase em inglês descrevendo a cena com o termo, com a descrição da cena e o item de origem como apoio do avaliador (em acerto, a frase do usuário corrigida; em erro, uma frase modelo; quando a resposta é só a palavra ou só sujeito e verbo, a frase ganha um detalhe real da cena, para frase e áudio serem úteis), seguida, quando houver, de uma linha curta em português com a correção do resto da frase e a citação dos extras corretos. Tradução, áudio de feedback e dica de erro seguem as regras atuais; a dica em acerto não vale (Seção 6.2).
 - **Resposta:** digitada ou por voz (Seção 2, Resposta por voz), pelo mesmo caminho.
 - **Monitoramento:** quando o avaliador julga que a imagem não mostra o termo, a pergunta fica marcada com o motivo, só para acompanhamento interno. A marca nunca é desfeita por uma avaliação posterior e não muda nada para o usuário.
 
@@ -296,9 +292,11 @@ Avaliado contra as respostas esperadas geradas na criação da atividade. Tom di
 - Material enviado pelo usuário: só as respostas esperadas e suas variações de grafia, flexão, artigo e contração. Outro termo, mesmo correto em inglês, é erro. Motivo: o usuário está estudando aquele material, e o termo do material é o que ele precisa fixar.
 - Formatos de escolha entre opções (múltipla escolha, reconhecimento por imagem) seguem exatos em qualquer origem: só a opção correta vale.
 
+**Falha na avaliação:** se a avaliação não sai (erro do provedor ou resposta inválida), o usuário recebe "Não foi possível avaliar essa resposta. Envie de novo." e nada é gravado como tentativa: a pergunta segue pendente, sem status, revisão espaçada, pontuação ou contador do dia, e as opções da lista continuam livres. Motivo: a falha é do sistema, não do usuário.
+
 **Abertura por resultado:**
 - Certo: "Boa!", "Correto!", "Exato!" ou "Perfeito!"
-- Errado: "Errado!", "Infelizmente não!", "Ops, errado!" ou "Hmmm, errou!"
+- Errado: "Errado!", "Infelizmente não!", "Ops, errado!" ou "Hmm, errou!"
 - Parcial: "Quase!", "Por pouco!" ou "Quase lá!"
 
 **Nível da frase:** no básico, a frase do feedback é curta, com até 8 palavras, vocabulário elementar e um só detalhe, inclusive no áudio. No cenário, ela resume a situação da pergunta em vez de traduzir todos os detalhes. No gap fill e nos formatos de áudio, a frase é a própria da pergunta ou do áudio, então o nível vem da geração. Nos formatos com imagem, a descrição da cena diz o que aparece, mas a frase não repete as palavras dela.
@@ -355,7 +353,7 @@ Vale tanto para cadência quanto para sessão intensiva. Em sessão intensiva, a
 
 ### 6.3 Sugestão de troca de atividade
 
-Quando a atividade ativa já atingiu uma nota alta o suficiente, o feedback de uma resposta correta pode vir acompanhado da sugestão de trocar de atividade (🔄, ver vocabulário de emoji), com botão (ou o comando por extenso, dependendo do canal) para iniciar o fluxo de nova atividade. O fecho da mensagem depende do modo: no modo intensivo, sugere apenas aguardar a próxima pergunta; fora dele, como não há mais pergunta por cadência, sugere continuar praticando e traz também o botão Praticar. O fecho do modo intensivo só vale se o envio automático voltar (Seção 8.5): com o Continuar, ninguém aguarda a próxima pergunta, abaixo de Nova atividade. Se algo impedir a prática (limite do dia, conta expirada etc.), o Praticar segue o fluxo normal e recebe a resposta de bloqueio de sempre. Nunca acompanha feedback de erro ou parcial, para não soar como reação ao erro. A dica de alternativa em acerto (Seção 6.2) pode ser enviada na mesma resposta, como mensagem separada após o feedback, sem influenciar a nota.
+Quando a atividade ativa já atingiu uma nota alta o suficiente, o feedback de uma resposta correta pode vir acompanhado da sugestão de trocar de atividade (🔄, ver vocabulário de emoji), com botão (ou o comando por extenso, dependendo do canal) para iniciar o fluxo de nova atividade. O fecho da mensagem depende do modo: no modo intensivo, sugere apenas aguardar a próxima pergunta; fora dele, como não há mais pergunta por cadência, sugere continuar praticando e traz também o botão Continuar. O fecho do modo intensivo só vale se o envio automático voltar (Seção 8.5): com o Continuar, ninguém aguarda a próxima pergunta, abaixo de Nova atividade. Se algo impedir a prática (limite do dia, conta expirada etc.), o Continuar segue o fluxo normal e recebe a resposta de bloqueio de sempre. Nunca acompanha feedback de erro ou parcial, para não soar como reação ao erro. A dica de alternativa em acerto (Seção 6.2) pode ser enviada na mesma resposta, como mensagem separada após o feedback, sem influenciar a nota.
 
 Cada pergunta tem uma nota de 0 a 10, calculada a partir de dois eixos independentes.
 
@@ -427,11 +425,11 @@ Perguntas respondidas várias vezes no mesmo dia pelo fallback não recalculam o
 
 ### 8.1 Supressão de mensagens concorrentes
 
-Enquanto o sistema está processando uma mensagem do usuário e ainda não enviou resposta, qualquer nova mensagem recebida nesse intervalo é ignorada, silenciosamente, sem retorno ao usuário. Isso vale para qualquer tipo de mensagem, resposta de prática ou comando, não só para o par pergunta-resposta.
+Enquanto o sistema está processando uma mensagem do usuário e ainda não enviou resposta, qualquer nova mensagem recebida nesse intervalo é ignorada, silenciosamente, sem retorno ao usuário. Isso vale para qualquer tipo de mensagem, resposta de prática ou comando, não só para o par pergunta-resposta, e também para duas abas ou toque duplo chegando ao mesmo tempo: só uma pega o turno.
 
 Objetivo: evitar avaliação duplicada quando o usuário corrige uma resposta digitada errado em sequência rápida, e evitar que um comando enviado durante o processamento de uma resposta anterior gere resposta fora de ordem.
 
-Janela de segurança: intervalo curto, medido em segundos, que também serve como proteção contra falha silenciosa. Se o processamento de uma mensagem travar ou não retornar, o bloqueio expira sozinho após esse intervalo, liberando o usuário para nova tentativa sem necessidade de intervenção manual.
+Janela de segurança: o tempo máximo de um turno (o mesmo que esconde o Continuar enquanto o turno roda), que também serve como proteção contra falha silenciosa. Se o processamento de uma mensagem travar ou não retornar, o bloqueio expira sozinho após esse intervalo, liberando o usuário para nova tentativa sem necessidade de intervenção manual.
 
 ### 8.2 Limite diário de prática
 
@@ -439,7 +437,9 @@ Controle de volume por custo.
 
 **Limite total:** 60 práticas avaliadas (`right`, `wrong`, `partial`) por usuário por dia.
 
-**Reserva de cadência sem efeito hoje:** existe uma divisão histórica da cota, com 24 práticas reservadas para a cadência e teto de 36 para o intensivo dentro do total de 60. Com a cadência pausada (Seção 8), o intensivo é o único canal de entrega, e essa divisão não tem efeito prático. Fica registrada para revisão caso a cadência volte.
+**Dia:** todo limite e contador diário (prática, 5 atividades, "amanhã tem mais") vira à meia-noite no fuso do usuário, o mesmo do lembrete diário.
+
+**Reserva de cadência sem efeito hoje:** existe uma divisão histórica da cota, com 24 práticas reservadas para a cadência e teto de 36 para o intensivo dentro do total de 60. Com a cadência pausada (Seção 8), o intensivo é o único canal de entrega, e o teto de 36 não é aplicado: vale só o total de 60. Fica registrada para revisão caso a cadência volte, quando o teto do intensivo volta a valer.
 
 **Verificação:** antes de avaliar qualquer resposta, o sistema checa o contador do dia. Se o total já atingiu 60, bloqueia qualquer prática.
 
@@ -531,14 +531,14 @@ Depois de enviar, o ícone escolhido fica preenchido e os dois ficam desabilitad
 | `praticar` | Inicia sessão intensiva, perguntas chegam uma após a outra até o limite diário (ver Seção 8.2) |
 | `continuar` | Recebe a próxima pergunta, igual ao botão Continuar (ver Seção 8.5) |
 | `pausar` | Para o envio de perguntas |
-| `retomar` | Retoma após pausa |
+| `retomar` | Retoma após pausa. Com a atividade pausada, texto livre e `praticar` respondem que ela está pausada e apontam `retomar` |
 | `atividade` | Lista a atividade ativa e as anteriores |
 | `nova atividade` | Abre a modal de nova atividade (ver Seção 15). Nada aparece no chat até a atividade ser validada |
 | `nivel` | Abre a modal de nível (ver Seção 5). Nada aparece no chat |
 | `cancelar` | Sai do fluxo ou ação em andamento |
 | `suporte` | Abre a modal de suporte (ver Seção 9.1). Nada aparece no chat |
 
-Todo comando começa com `/` (`/ajuda`, `/praticar`). Sem barra é texto comum: com pergunta pendente, "ajuda" é resposta. Vale também para `sim`, `não` e `cancelar`, e voz nunca é comando (Seção 2). Botões do chat enviam o comando com barra.
+Todo comando começa com `/` (`/ajuda`, `/praticar`). Sem barra é texto comum: com pergunta pendente, "ajuda" é resposta. Com barra e sem bater em nenhum comando (erro de digitação como `/praticr`), a resposta diz que não é um comando e traz a lista; nunca é avaliado como resposta, e a pergunta pendente continua pendente. Vale também para `sim`, `não` e `cancelar`, e voz nunca é comando (Seção 2). Botões do chat enviam o comando com barra.
 
 Comandos não atualizam o histórico de prática nem contam como interação.
 
@@ -555,7 +555,7 @@ A lista de comandos tem duas superfícies de descoberta, ambas alimentadas pela 
 - O comando `ajuda`, que devolve a lista formatada.
 - O autocomplete do composer na superfície web: ao digitar `/`, o campo sugere comandos de forma incremental, filtrando por prefixo ou alias conforme o usuário digita, e envia o comando escolhido direto. Sem a barra, só vale o prefixo do nome do comando; alias e trecho no meio do nome só entram com a barra, para texto comum não abrir sugestão à toa.
 
-O comando `ajuda` não aparece na própria lista que gera nem no autocomplete. Comandos de confirmação dentro de um fluxo em andamento (`sim`, `não`, `cancelar`) e o comando interno de staff também ficam fora das duas superfícies. Alterar a fonte de comandos atualiza as duas ao mesmo tempo.
+O comando `ajuda` não aparece na própria lista que gera nem no autocomplete. Comandos de confirmação dentro de um fluxo em andamento (`sim`, `não`, `cancelar`), o comando interno de staff e `praticar` (mesmo efeito de `continuar`, segue valendo digitado e pela pill e pelo banner) também ficam fora das duas superfícies. Alterar a fonte de comandos atualiza as duas ao mesmo tempo.
 
 ---
 
@@ -572,7 +572,7 @@ O texto abaixo é exemplo da versão atual, sujeito a revisão de copy sem que i
 **Primeiro contato** (exemplo do texto atual, em sequência):
 
 ```
-Hi 👋 Bem-vindo a *Fluizer*.
+Olá 👋 Boas-vindas ao *Fluizer*.
 
 Pratique inglês no seu ritmo, sobre o que fizer sentido pra você.
 
@@ -615,7 +615,7 @@ Dois planos: Trial e Pro. Sem tier gratuito permanente.
 
 Após expirar o acesso, trial ou Pro: conta bloqueada até converter. Sem degradação gradual, o produto inteiro ou nada.
 
-A regra de acesso é simples: plano ativo com data de expiração no futuro. Independe do tipo de plano e de como o período foi pago. Acesso cortesia ou manual é concedido direto no usuário (plano e data de expiração), sem precisar de assinatura.
+A regra de acesso é simples: plano ativo com data de expiração no futuro. O status do plano vira expirado sozinho, numa rotina diária, sem depender de mensagem do usuário; até ela rodar, a data já bloqueia o acesso. Independe do tipo de plano e de como o período foi pago. Acesso cortesia ou manual é concedido direto no usuário (plano e data de expiração), sem precisar de assinatura.
 
 ### 11.1 Cobrança e liberação automática
 
@@ -832,7 +832,7 @@ Texto solto enviado no chat nunca é interpretado como material. Só arquivo (im
 
 **Cap diário: 5 atividades por usuário por dia.** O cap conta atividades criadas, não arquivos enviados: até 3 arquivos enviados juntos pela modal formam um único material e consomem uma única vaga. A modal checa o cap antes de fechar e avisa ali mesmo quando ele já foi atingido. Modal fechada antes de continuar, ou pedido barrado na validação, não consome o cap.
 
-Após o processamento, a primeira pergunta sai sozinha logo depois da confirmação (e do resumo da atividade anterior, quando há), com a pausa normal entre mensagens e sem depender do Continuar. O mesmo vale para a primeira pergunta de uma atividade criada pelo fluxo de nova atividade.
+Após o processamento, a primeira pergunta sai sozinha logo depois da confirmação (e do resumo da atividade anterior, quando há), com a pausa normal entre mensagens e sem depender do Continuar. O mesmo vale para a primeira pergunta de uma atividade criada pelo fluxo de nova atividade. Se a primeira pergunta não sai, o usuário recebe "A primeira pergunta não saiu. Use /praticar para tentar de novo.", porque sem feedback anterior o Continuar ainda não existe. Falha ao gerar uma pergunta depois disso responde "A próxima pergunta não saiu. Use /praticar para tentar de novo.", sem prometer envio posterior.
 
 **Origem do material:** cada material grava sua origem, `upload` ou `generated` (ver Seção 15). Material com origem `generated` grava também o objetivo, o assunto, o(s) foco(s) e o subtópico que originaram aquele conteúdo, para rastreabilidade. Material com origem `upload` não grava esses dados por enquanto.
 
@@ -918,7 +918,7 @@ Conteúdo gerado é individual: sem pool compartilhado entre usuários, sem vers
 
 ### Criação da atividade
 
-Atividade criada pela modal segue as mesmas regras de transição e visibilidade da Seção 1 (arquiva ou cancela conforme a anterior teve resposta) e conta para o mesmo cap diário de 5 atividades (Seção 14). A atividade anterior só é arquivada depois que o novo conteúdo existe: falha na geração mantém a atividade atual.
+Atividade criada pela modal segue as mesmas regras de transição e visibilidade da Seção 1 (arquiva ou cancela conforme a anterior teve resposta) e conta para o mesmo cap diário de 5 atividades (Seção 14). A atividade anterior só é arquivada depois que o novo conteúdo existe: falha na geração mantém a atividade atual. Na troca, toda atividade ainda aberta (ativa ou pausada) é arquivada ou cancelada, nunca sobra mais de uma ativa.
 
 ---
 
@@ -935,7 +935,7 @@ Atividade criada pela modal segue as mesmas regras de transição e visibilidade
 - **Exceção registrada, sem virar precedente:** a nota abaixo do campo de detalhes do dislike (Seção 8.6), "A IA pode cometer erros. Seu feedback ajuda a melhorar as próximas perguntas.", usa linguagem de IA de forma consciente, para explicar por que o aviso existe. Não vale como modelo para outra copy.
 - **O sistema nunca se personifica.** Copy não usa framing de agente em primeira pessoa ("eu vou avaliar seu material", "eu te ajudo", "eu aviso"), nem trata o produto como personagem com vontade própria. Mensagens descrevem o que acontece, não o que "eu" faço. Essa regra já existia em relação a "eu paro", "eu pauso" no contexto de comandos, passa a cobrir qualquer construção de primeira pessoa em qualquer mensagem do sistema, não só as ligadas a comandos.
 - **Verbo padrão para envio de conteúdo é "enviar", não "mandar".** "Mandar" é registro mais informal e não é usado em nenhuma copy do produto. Vale para qualquer mensagem do sistema, onboarding, comandos ou fallback.
-- Emoji só é usado em mensagens formatadas diretamente no código, nunca em texto gerado por LLM (feedback de avaliação, resumo de atividade quando tiver componente gerado, qualquer resposta que passe por geração de texto livre). Dentro das mensagens de código, emoji é estratégico, não decorativo, cada um carrega um significado fixo e reconhecível. Vocabulário atual: 📘 início de atividade ou seção, 📊 resumo numérico, ⚠️ limite ou bloqueio, 🔄 sugestão de troca de atividade, ✅ fechamento positivo de ciclo de revisão. Novo emoji só entra no vocabulário quando resolve ambiguidade real de leitura rápida, não para variar visual ou suavizar tom. Isso não quer dizer que é rigorosamente proibido, só não pode ser usado como identidade de comunicação principal do produto. Marcações como acima são bem vindos quando realmente agregarem uma melhor leitura, também pra evitar só um monte de texto corrido.
+- Emoji só é usado em mensagens formatadas diretamente no código, nunca em texto gerado por LLM (feedback de avaliação, resumo de atividade quando tiver componente gerado, qualquer resposta que passe por geração de texto livre). Dentro das mensagens de código, emoji é estratégico, não decorativo, cada um carrega um significado fixo e reconhecível. Vocabulário atual: 📘 início de atividade ou seção, 📊 resumo numérico, ⚠️ limite, bloqueio ou pergunta em aberto, 🔄 sugestão de troca de atividade, ✅ fechamento positivo (revisão em dia, assinatura confirmada, material recebido), ✅/⚠️/❌ abertura do feedback (certo, parcial, errado), 💡 dica de avaliação, 👋 boas-vindas do onboarding, ⏳ fim do teste grátis, 🔒 acesso encerrado. Novo emoji só entra no vocabulário quando resolve ambiguidade real de leitura rápida, não para variar visual ou suavizar tom. Isso não quer dizer que é rigorosamente proibido, só não pode ser usado como identidade de comunicação principal do produto. Marcações como acima são bem vindos quando realmente agregarem uma melhor leitura, também pra evitar só um monte de texto corrido.
 - **Convenção de exibição de comando.** Comando mencionado em qualquer mensagem do sistema aparece em monoespaçado, para garantir contraste visual independente de tema claro ou escuro do canal, o que negrito isolado não garante. Comando de ação espontânea do usuário (`ajuda`, `praticar`, `nova atividade`, `cancelar` fora de fluxo de confirmação) é exibido com prefixo `/`. Comando de confirmação dentro de um estado que o sistema abriu (`sim`, `não`, `cancelar` dentro do fluxo de nova atividade) é exibido sem prefixo. Entrada do usuário aceita o comando com ou sem prefixo, independente de como foi exibido, o prefixo não é sintaxe obrigatória.
 
 ---
@@ -1014,7 +1014,7 @@ Um canal novo pode nascer só com suporte a `text` e ganhar as camadas opcionais
 
 Dentro de `interactive`, um botão pode ser de dois tipos: ação (resposta rápida nativa do canal, ex: "Nova atividade") ou link (abre uma URL, ex: link do bloqueio de acesso para a página de planos ou o portal de pagamento, Seção 11.1). Link do próprio app navega na mesma aba; link externo abre em nova aba. Mensagem com botão de link sempre inclui a mesma URL também no `text` puro, como fallback para quem recebe só a camada canônica.
 
-`Message.templateName` e `Message.interactive` são persistidos junto do envio (colunas nullable, preenchidas só quando aplicável), como registro de auditoria do que foi de fato enviado ao usuário, não só o texto equivalente. O `interactive` em produção cobre hoje quatro casos: a sugestão de troca de atividade (Seção 6.3), botão de ação "Nova atividade" e, fora do modo intensivo, "Praticar"; o link de pagamento do bloqueio de acesso (Seção 11.1), botão de link que abre a página de planos ou o portal de pagamento e aparece como link clicável dentro do próprio texto em qualquer canal sem suporte a botão; os botões "Criar atividade" (convite do sistema) e "Tentar de novo" da criação de atividade (Seção 15); e as perguntas `choice` e de reconhecimento por imagem (Seção 4), com um botão por opção.
+`Message.templateName` e `Message.interactive` são persistidos junto do envio (colunas nullable, preenchidas só quando aplicável), como registro de auditoria do que foi de fato enviado ao usuário, não só o texto equivalente. O `interactive` em produção cobre hoje quatro casos: a sugestão de troca de atividade (Seção 6.3), botão de ação "Nova atividade" e, fora do modo intensivo, "Continuar"; o link de pagamento do bloqueio de acesso (Seção 11.1), botão de link que abre a página de planos ou o portal de pagamento e aparece como link clicável dentro do próprio texto em qualquer canal sem suporte a botão; os botões "Criar atividade" (convite do sistema) e "Tentar de novo" da criação de atividade (Seção 15); e as perguntas `choice` e de reconhecimento por imagem (Seção 4), com um botão por opção.
 
 Nas listas de opções, o `interactive` guarda também o estado da seleção: `disabled` (todas as opções travadas) e `selectedId` (id da opção escolhida, destacada). Ausentes, a lista está pendente. Quem grava é a avaliação da resposta (`choice` e `image_recognition`), na mensagem mais recente e ainda livre daquela pergunta; a opção vem do botão clicado, senão do número ou do texto digitado, e sem correspondência grava só `disabled`. Cards de nível do antigo fluxo no chat continuam no histórico, sempre travados.
 

@@ -3,6 +3,7 @@
 import { useTranslations } from "next-intl";
 import { FooterSocial } from "../shared/footer-social";
 import Link from "next/link";
+import { CONTACT_PATH } from "@/src/lib/constants";
 
 export default function Footer() {
   const t = useTranslations("home.footer");
@@ -20,7 +21,7 @@ export default function Footer() {
       <hr className="border-t border-border w-[150px] mx-auto" />
       <div className="max-w-5xl mx-auto px-6 pt-5 pb-2 flex items-center justify-center">
         <p className="text-[13px] text-muted-foreground text-center">
-          {t("copyright")}
+          {t("copyright", { year: new Date().getFullYear() })}
         </p>
       </div>
       <div className="flex items-center justify-center gap-2 pb-6 opacity-80 hover:opacity-100 transition text-sm text-muted-foreground">
@@ -32,14 +33,21 @@ export default function Footer() {
         </Link>
         •
         <Link href="/terms" className="-my-3 inline-flex min-h-touch items-center px-1 hover:text-foreground transition-colors">
-          Termos de uso
+          {t("terms")}
         </Link>
         •
         <Link
           href="/privacy"
           className="-my-3 inline-flex min-h-touch items-center px-1 hover:text-foreground transition-colors"
         >
-          Privacidade
+          {t("privacy")}
+        </Link>
+        •
+        <Link
+          href={CONTACT_PATH}
+          className="-my-3 inline-flex min-h-touch items-center px-1 hover:text-foreground transition-colors"
+        >
+          {t("contact")}
         </Link>
       </div>
     </footer>

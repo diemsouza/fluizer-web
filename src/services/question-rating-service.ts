@@ -13,10 +13,13 @@ export async function rateQuestion(params: {
   rating: boolean;
   ratingKind: QuestionRatingKind | null;
   ratingNote: string | null;
+  today: Date;
 }): Promise<void> {
-  const { userId, questionId, rating, ratingKind, ratingNote } = params;
+  const { userId, questionId, rating, ratingKind, ratingNote, today } = params;
   const activity = await findLastActiveActivityByUser(userId);
-  const actions = activity ? await findPracticeActions(activity, userId) : null;
+  const actions = activity
+    ? await findPracticeActions(activity, userId, today)
+    : null;
   if (actions?.questionId !== questionId || actions.rating !== null) {
     throw new QuestionRatingConflictError();
   }

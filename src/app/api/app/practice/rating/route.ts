@@ -7,6 +7,7 @@ import {
 import { QUESTION_RATING_NOTE_MAX_LENGTH } from "@/src/lib/constants";
 import { DISLIKE_KINDS } from "@/src/core/question-rating";
 import { rateQuestion } from "@/src/services/question-rating-service";
+import { startOfUserDay } from "@/src/lib/datetime-utils";
 
 const RatingSchema = z
   .object({
@@ -25,6 +26,7 @@ export async function POST(request: Request): Promise<Response> {
       ...data,
       userId: user.id,
       ratingNote: data.ratingNote || null,
+      today: startOfUserDay(new Date(), user.timezone),
     });
     return Response.json({ ok: true });
   } catch (error) {

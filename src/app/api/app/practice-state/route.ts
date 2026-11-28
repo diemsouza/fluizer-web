@@ -5,7 +5,7 @@ import { findPracticePillState } from "@/src/services/practice-pill-service";
 export async function GET(): Promise<Response> {
   try {
     const user = await requireAuth();
-    return Response.json(await findPracticePillState(user.id));
+    return Response.json(await findPracticePillState(user));
   } catch (error) {
     if (error instanceof UnauthorizedError) {
       return Response.json({ error: "unauthorized" }, { status: 401 });

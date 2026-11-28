@@ -21,9 +21,9 @@ export function formatInvalidContentMessage(
   const translated = invalidReason
     ? (REASON_TRANSLATIONS[invalidReason] ?? invalidReason)
     : null;
-  const reasonPart = translated ? `\n${translated} ` : "";
+  const reasonPart = translated ? `\n${translated}` : "";
   return {
-    text: `Não foi possível usar esse material. ${reasonPart}\n\n_Tente uma lista de palavras, texto corrido ou exercícios em inglês. Envie novamente ou tente outro formato._`,
+    text: `Não foi possível usar esse material.${reasonPart}\n\n_Envie uma lista de palavras ou um texto em inglês, ou tente outro formato._`,
   };
 }
 

@@ -7,12 +7,15 @@ import {
   unlockSharedAudioContext,
 } from "@/src/lib/shared-audio-context";
 import {
+  detectPermissionPlatform,
   pickRecorderMimeType,
   preloadVoiceRemux,
 } from "@/src/lib/voice-recording";
 import {
   VOICE_AUDIO_CONSTRAINTS,
   VOICE_BITRATE,
+  VOICE_IOS_GAIN,
+  VOICE_LIMITER_OPTIONS,
   VOICE_MAX_SEC,
   VOICE_MIN_MS,
   VOICE_WARN_SEC,
@@ -22,7 +25,11 @@ export type VoiceRecorderStatus =
   "idle" | "requesting" | "recording" | "denied";
 export type VoiceCaptureError = "not_found" | "in_use" | "generic";
 
-type LevelMeter = { analyser: AnalyserNode; release: () => void };
+type CaptureGraph = {
+  analyser: AnalyserNode;
+  recordingStream: MediaStream;
+  release: () => void;
+};
 
 type UseVoiceRecorderOptions = {
   onRecorded: (recording: Blob) => void;
@@ -49,8 +56,11 @@ const RECORDING_BARS = 120;
 // Escala fixa em dB: dividir pelo maior pico fazia o ruido encher as barras, e
 // linear com corte zerava o iPhone, que sem cancelamento de eco fica perto de
 // 0.001 em silencio e ~0.1 nos picos da fala.
-const LEVEL_MIN_DB = -50;
-const LEVEL_MAX_DB = -20;
+const LEVEL_MIN_DB = -38;
+const LEVEL_MAX_DB = -8;
+// Espera pelo resume() do AudioContext antes de desistir do ganho: gravar por
+// um contexto parado geraria um audio mudo.
+const CONTEXT_RESUME_TIMEOUT_MS = 300;
 // Rede de seguranca: se o MediaRecorder nunca disparar "stop", a UI nao pode
 // ficar presa no estado gravando.
 const STOP_FALLBACK_MS = 1500;
@@ -68,30 +78,74 @@ function classifyCaptureError(err: unknown): VoiceCaptureError | "denied" {
   return "generic";
 }
 
+function needsMicGain(): boolean {
+  return detectPermissionPlatform().startsWith("ios_");
+}
+
+async function waitForRunningContext(ctx: AudioContext): Promise<boolean> {
+  if (canResumeAudioContext(ctx.state)) {
+    const timeout = new Promise<void>((resolve) =>
+      setTimeout(resolve, CONTEXT_RESUME_TIMEOUT_MS),
+    );
+    try {
+      await Promise.race([ctx.resume(), timeout]);
+    } catch (err) {
+      console.error("[useVoiceRecorder] resume:", err);
+    }
+  }
+  return ctx.state === "running";
+}
+
+function createBoost(
+  ctx: AudioContext,
+  source: AudioNode,
+): { output: AudioNode; destination: MediaStreamAudioDestinationNode } {
+  const gain = ctx.createGain();
+  gain.gain.value = VOICE_IOS_GAIN;
+  const limiter = ctx.createDynamicsCompressor();
+  limiter.threshold.value = VOICE_LIMITER_OPTIONS.threshold;
+  limiter.knee.value = VOICE_LIMITER_OPTIONS.knee;
+  limiter.ratio.value = VOICE_LIMITER_OPTIONS.ratio;
+  limiter.attack.value = VOICE_LIMITER_OPTIONS.attack;
+  limiter.release.value = VOICE_LIMITER_OPTIONS.release;
+  const destination = ctx.createMediaStreamDestination();
+  destination.channelCount = 1;
+  source.connect(gain);
+  gain.connect(limiter);
+  limiter.connect(destination);
+  return { output: limiter, destination };
+}
+
 // O ganho zero ligado ao destino mantem o grafo processando no Safari, que
 // nao atualiza um AnalyserNode solto, sem tocar o microfone no alto-falante.
-function createLevelMeter(
+// O medidor le depois do ganho: as barras mostram o que e gravado.
+function createCaptureGraph(
   ctx: AudioContext,
   stream: MediaStream,
-): LevelMeter | null {
+  withGain: boolean,
+): CaptureGraph | null {
   try {
     const source = ctx.createMediaStreamSource(stream);
+    const boost = withGain ? createBoost(ctx, source) : null;
     const analyser = ctx.createAnalyser();
     analyser.fftSize = 1024;
     const sink = ctx.createGain();
     sink.gain.value = 0;
-    source.connect(analyser);
+    (boost?.output ?? source).connect(analyser);
     analyser.connect(sink);
     sink.connect(ctx.destination);
     const release = (): void => {
       source.disconnect();
+      boost?.output.disconnect();
+      boost?.destination.stream.getTracks().forEach((track) => track.stop());
       analyser.disconnect();
       sink.disconnect();
     };
-    return { analyser, release };
+    const recordingStream = boost?.destination.stream ?? stream;
+    return { analyser, recordingStream, release };
   } catch (err) {
-    console.error("[useVoiceRecorder] level meter:", err);
-    return null;
+    console.error("[useVoiceRecorder] capture graph:", err);
+    return withGain ? createCaptureGraph(ctx, stream, false) : null;
   }
 }
 
@@ -126,7 +180,7 @@ export function useVoiceRecorder({
   const statusRef = useRef<VoiceRecorderStatus>("idle");
   const streamRef = useRef<MediaStream | null>(null);
   const recorderRef = useRef<MediaRecorder | null>(null);
-  const meterRef = useRef<LevelMeter | null>(null);
+  const graphRef = useRef<CaptureGraph | null>(null);
   const chunksRef = useRef<Blob[]>([]);
   const startedAtRef = useRef(0);
   const stoppedAtRef = useRef(0);
@@ -145,8 +199,8 @@ export function useVoiceRecorder({
   const releaseCapture = useCallback((): void => {
     timersRef.current.forEach(clearInterval);
     timersRef.current = [];
-    meterRef.current?.release();
-    meterRef.current = null;
+    graphRef.current?.release();
+    graphRef.current = null;
     streamRef.current?.getTracks().forEach((track) => track.stop());
     streamRef.current = null;
     setRecordingAudioSession(false);
@@ -206,7 +260,7 @@ export function useVoiceRecorder({
       if (elapsed >= VOICE_MAX_SEC * 1000) stopRecording(true);
     }, TICK_MS);
     const meter = setInterval(() => {
-      const analyser = meterRef.current?.analyser;
+      const analyser = graphRef.current?.analyser;
       if (!analyser) return;
       const level = scaleLevel(readLevel(analyser, buffer));
       setLevels((prev) => [...prev.slice(1), level]);
@@ -215,9 +269,19 @@ export function useVoiceRecorder({
   }, [stopRecording]);
 
   const beginRecording = useCallback(
-    (stream: MediaStream, ctx: AudioContext | null, mimeType: string): void => {
+    (
+      stream: MediaStream,
+      ctx: AudioContext | null,
+      mimeType: string,
+      withGain: boolean,
+    ): void => {
       streamRef.current = stream;
-      const recorder = new MediaRecorder(stream, {
+      // No toque o pointerdown nao conta como gesto e o resume() do clique pode
+      // nao ter destravado; com a captura ativa o navegador costuma liberar.
+      if (ctx && canResumeAudioContext(ctx.state)) void ctx.resume();
+      graphRef.current = ctx ? createCaptureGraph(ctx, stream, withGain) : null;
+      const recordingStream = graphRef.current?.recordingStream ?? stream;
+      const recorder = new MediaRecorder(recordingStream, {
         mimeType,
         audioBitsPerSecond: VOICE_BITRATE,
       });
@@ -236,10 +300,6 @@ export function useVoiceRecorder({
       stream.getTracks().forEach((track) => {
         track.onended = () => stopRecording(true);
       });
-      // No toque o pointerdown nao conta como gesto e o resume() do clique pode
-      // nao ter destravado; com a captura ativa o navegador costuma liberar.
-      if (ctx && canResumeAudioContext(ctx.state)) void ctx.resume();
-      meterRef.current = ctx ? createLevelMeter(ctx, stream) : null;
       recorderRef.current = recorder;
       stoppedAtRef.current = 0;
       shouldSendRef.current = true;
@@ -280,13 +340,15 @@ export function useVoiceRecorder({
     const ctx = unlockSharedAudioContext();
     navigator.mediaDevices
       .getUserMedia({ audio: VOICE_AUDIO_CONSTRAINTS })
-      .then((stream) => {
+      .then(async (stream) => {
+        const withGain =
+          ctx !== null && needsMicGain() && (await waitForRunningContext(ctx));
         if (!isMountedRef.current || statusRef.current !== "requesting") {
           stream.getTracks().forEach((track) => track.stop());
           setRecordingAudioSession(false);
           return;
         }
-        beginRecording(stream, ctx, mimeType);
+        beginRecording(stream, ctx, mimeType, withGain);
       })
       .catch(handleCaptureFailure);
   }, [beginRecording, handleCaptureFailure, updateStatus]);

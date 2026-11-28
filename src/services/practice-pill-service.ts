@@ -1,5 +1,5 @@
-import { startOfDay } from "date-fns";
-import { Activity } from "../lib/prisma";
+import { Activity, User } from "../lib/prisma";
+import { startOfUserDay } from "../lib/datetime-utils";
 import {
   isPracticeLimitReached,
   isTurnInProgress,
@@ -16,13 +16,16 @@ import {
   findPendingQuestion,
   findUserQuestionById,
 } from "../repo/questions.repo";
-import { findUserActivityCreation, findUserById } from "../repo/users.repo";
+import { findUserActivityCreation } from "../repo/users.repo";
 import { findPendingDocByUser } from "../repo/docs.repo";
 import { isActivityCreationInProgress } from "../core/activity-request";
 import { DOC_PENDING_TIMEOUT_MS } from "../lib/constants";
 
-async function findTodayLimitReached(userId: string): Promise<boolean> {
-  const usage = await getTodayUsage(userId, startOfDay(new Date()));
+async function findTodayLimitReached(
+  userId: string,
+  today: Date,
+): Promise<boolean> {
+  const usage = await getTodayUsage(userId, today);
   return isPracticeLimitReached(
     usage?.practiceCount ?? 0,
     usage?.intensiveCount ?? 0,
@@ -37,6 +40,7 @@ export async function findPracticeActions(
     "id" | "status" | "roundCompleted" | "lastQuestionId"
   >,
   userId: string,
+  today: Date,
 ): Promise<PracticeActions | null> {
   if (activity.status !== "active") return null;
   if (await findPendingQuestion(activity.id)) return null;
@@ -54,7 +58,7 @@ export async function findPracticeActions(
   return resolvePracticeActions({
     question,
     messageId: lastStudy.id,
-    isLimitReached: await findTodayLimitReached(userId),
+    isLimitReached: await findTodayLimitReached(userId, today),
     hasNextQuestion,
   });
 }
@@ -74,20 +78,21 @@ export async function isActivityBeingCreated(
 }
 
 export async function findPracticePillState(
-  userId: string,
+  user: Pick<User, "id" | "timezone" | "lastRequestAt" | "lastResponseAt">,
 ): Promise<PracticePillState> {
-  const [activity, user, isLimitReached, isCreating] = await Promise.all([
-    findCurrentActivityByUser(userId),
-    findUserById(userId),
-    findTodayLimitReached(userId),
-    isActivityBeingCreated(userId, new Date()),
+  const today = startOfUserDay(new Date(), user.timezone);
+  const [activity, isLimitReached, isCreating] = await Promise.all([
+    findCurrentActivityByUser(user.id),
+    findTodayLimitReached(user.id, today),
+    isActivityBeingCreated(user.id, new Date()),
   ]);
-  const isTurnBusy =
-    isCreating || (!!user && isTurnInProgress(user, Date.now()));
+  const isTurnBusy = isCreating || isTurnInProgress(user, Date.now());
   const practiceActions =
-    activity && !isTurnBusy ? await findPracticeActions(activity, userId) : null;
+    activity && !isTurnBusy
+      ? await findPracticeActions(activity, user.id, today)
+      : null;
   return resolvePracticePillState({
-    hasActiveActivity: Boolean(activity),
+    hasActiveActivity: activity?.status === "active",
     intensiveUntil: activity?.intensiveUntil ?? null,
     isLimitReached,
     practiceActions,

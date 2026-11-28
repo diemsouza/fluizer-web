@@ -1,6 +1,7 @@
 import { ulid } from "ulid";
 import {
   MATERIAL_MAX_BYTES,
+  MATERIAL_TEXT_MAX_CHARS,
   MEDIA_PARENT_TYPE,
   MEDIA_SOURCE,
   OCR_IMAGE_FOLDER,
@@ -22,7 +23,9 @@ export type MaterialExtractError =
   | "unreadable"
   | "empty"
   | "unsupported"
-  | "too_large";
+  | "too_large"
+  | "too_long"
+  | "plan_expired";
 
 // messageId e pre-gerado: a Media da imagem nasce ligada a mensagem que so e
 // gravada quando o usuario confirma a criacao na modal.
@@ -74,6 +77,7 @@ export async function extractMaterialFile(
   if (!validateDocItemInput(text, mediaType).success) {
     return { ok: false, code: "empty" };
   }
+  if (text.length > MATERIAL_TEXT_MAX_CHARS) return { ok: false, code: "too_long" };
   return { ok: true, messageId, mediaType, text, mediaId: null };
 }
 
@@ -97,6 +101,9 @@ async function extractImage(
   if (vision.status !== "ok") return { ok: false, code: "unreadable" };
   if (!validateDocItemInput(vision.content, "image").success) {
     return { ok: false, code: "empty" };
+  }
+  if (vision.content.length > MATERIAL_TEXT_MAX_CHARS) {
+    return { ok: false, code: "too_long" };
   }
 
   const dimensions = readImageDimensions(buffer);

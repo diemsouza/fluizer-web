@@ -102,6 +102,12 @@ function toDayKey(date: Date, timeZone: string): string {
   return date.toLocaleDateString("en-CA", { timeZone });
 }
 
+// Meia-noite UTC do dia local: e o que as colunas @db.Date (DailyUsage.date,
+// Activity.date) gravam, sem o dia virar as 21h de Brasilia.
+export function startOfUserDay(now: Date, timeZone: string): Date {
+  return new Date(`${toDayKey(now, timeZone)}T00:00:00.000Z`);
+}
+
 export function formatRelativeDay(
   date: Date,
   now: Date,

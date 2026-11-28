@@ -50,7 +50,10 @@ export function simulatorImageUrl(domainId: DomainId): string {
   return `/images/simulator/${simulatorImageFileName(domainId)}`;
 }
 
-const IMAGE_QUESTION_PROMPT = "Qual opção descreve a imagem?";
+const IMAGE_QUESTION_PROMPT =
+  "Escolha, entre as opções abaixo, a que melhor representa o que aparece na imagem.";
+
+const SAMPLE_SCORE = 8.4;
 
 function samplePentagon(score: number): PentagonChartInput {
   return {
@@ -67,8 +70,9 @@ function samplePentagon(score: number): PentagonChartInput {
   };
 }
 
-function summaryFor(title: string): string {
-  return `📊 Resumo da atividade: *${title}*\n\nEm 3 dias, você respondeu 20 de 25 perguntas, 85% de acerto entre as respondidas (17 certas e 3 erradas), sendo 2 delas revisadas mais de uma vez antes de fixar.\n\nVocê está indo bem, continue assim.`;
+// Mesmo texto de formatPreviousActivitySummary para 85% de acerto.
+function summaryFor(title: string, score: number): string {
+  return `📊 Resumo da atividade: *${title}*\n\nEm 3 dias, você respondeu 20 de 25 perguntas, 85% de acerto entre as respondidas (17 certas e 3 erradas), sendo 2 delas revisadas mais de uma vez antes de fixar. Ficaram 5 perguntas sem resposta.\n\nPoucas respostas saíram erradas. Você fixou a maior parte desse conteúdo antes de trocar de atividade. Score: ${score.toFixed(1)}`;
 }
 
 const DEFAULT_FOCUS = "Vocabulário geral";
@@ -152,8 +156,8 @@ function buildRoteiro(
       activityTitle,
       confirmation: { time: turns[0].baseTime, domainLabel, focus },
       summaryTime,
-      summaryText: summaryFor(activityTitle),
-      pentagon: samplePentagon(8.4),
+      summaryText: summaryFor(activityTitle, SAMPLE_SCORE),
+      pentagon: samplePentagon(SAMPLE_SCORE),
       messages: built.flatMap((b) => b.messages),
     },
     audioItems: built.map((b) => b.audio),
@@ -398,7 +402,7 @@ const educationResult = buildRoteiro(
       userTime: "16:14",
       status: "wrong",
       emoji: "❌",
-      opening: "Hmmm, errou!",
+      opening: "Hmm, errou!",
       rightAnswer: "Scholarship",
       feedbackSentence: "She applied for a scholarship to study abroad.",
       translation: "Ela se candidatou a uma bolsa de estudos pra estudar no exterior.",

@@ -3,6 +3,7 @@ import { getTranslations } from "next-intl/server";
 import type { DomainId } from "@/src/lib/constants";
 import { buildAppEntryUrl } from "@/src/core/domain-param";
 import { Button } from "@/src/components/ui/button";
+import { BLOG_CTA_ATTR } from "@/src/core/blog";
 
 type BlogCtaProps = {
   domain?: DomainId;
@@ -13,6 +14,7 @@ type BlogCtaProps = {
 
 // Link puro, sem JS: quem nao tem sessao passa pelo login e volta com o domain
 // (sem domain, cai no /app normal). children e div: o MDX ja envolve o texto em <p>.
+// O clique e medido por BlogCtaTracker (layout do blog) via BLOG_CTA_ATTR.
 export async function BlogCta({ domain, variant, label, children }: BlogCtaProps) {
   const t = await getTranslations("blog.cta");
   const href = buildAppEntryUrl(domain ?? null);
@@ -25,6 +27,7 @@ export async function BlogCta({ domain, variant, label, children }: BlogCtaProps
         )}
         <a
           href={href}
+          {...{ [BLOG_CTA_ATTR]: variant }}
           className="mt-2 inline-flex min-h-touch items-center gap-1.5 font-semibold text-primary hover:underline underline-offset-4"
         >
           {label ?? t("inline_link")}
@@ -42,7 +45,7 @@ export async function BlogCta({ domain, variant, label, children }: BlogCtaProps
         </div>
       )}
       <Button asChild size="lg" className="gap-2">
-        <a href={href}>
+        <a href={href} {...{ [BLOG_CTA_ATTR]: variant }}>
           {label ?? t("button")}
           <ArrowRight className="h-5 w-5" strokeWidth={2.5} />
         </a>

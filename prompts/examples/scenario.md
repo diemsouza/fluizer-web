@@ -22,7 +22,6 @@ validação:
 - A situação não dá ordem de fala ao usuário (diga, peça, avise, responda).
 - O termo em inglês não aparece em nenhum ponto da situação.
 - A situação aponta para um único termo possível.
-- O termo em parêntese deve aparecer na situação, nunca na pergunta final.
 - Situação com no máximo 15 palavras, sem contar termo em parêntese.
 - Se qualquer critério falhar, gere outra pergunta com a correção.
 
@@ -32,13 +31,16 @@ fórmula: a mesma situação da pergunta, dita em EN simples, com o termo de rig
 nota: Nunca crie cenário novo nem acrescente elementos que não estavam nele. A frase narra a situação, nunca é imperativa dirigida ao usuário. Grafia idêntica à de right_answer. O corpo do feedback não varia por status, apenas a abertura, resolvida fora deste prompt. Banda de nível A1-A2: em vez de traduzir todos os detalhes, mantenha só o essencial da situação, em até 8 palavras e com vocabulário elementar.
 
 exemplo (late):
-- She showed up late and missed the introduction.
+- pergunta: Ela perdeu a apresentação porque chegou (atrasada).
+- feedback: She showed up late and missed the introduction.
 
 exemplo (borrow):
-- I need to borrow a pen for the exam.
+- pergunta: Você está sem caneta para a prova e precisa (pegar emprestado).
+- feedback: You have no pen, so you borrow one.
 
 exemplo (anyway):
-- The line was long, but she waited anyway.
+- pergunta: A fila estava longa, mas ela esperou (de qualquer forma).
+- feedback: The line was long, but she waited anyway.
 
 validação:
 - A frase de uso emprega o termo, nunca o define ou o explica.
@@ -71,7 +73,6 @@ validação:
 - A situação não dá ordem de fala ao usuário (diga, peça, avise, responda).
 - O termo em inglês não aparece em nenhum ponto da situação.
 - A situação aponta para um único termo possível.
-- O termo em parêntese deve aparecer na situação, nunca na pergunta final.
 - Situação com no máximo 15 palavras, sem contar termo em parêntese.
 - Se qualquer critério falhar, gere outra pergunta com a correção.
 
@@ -81,19 +82,22 @@ fórmula: a mesma situação da pergunta, dita em EN, com o termo de right_answe
 nota: Nunca crie cenário novo nem acrescente elementos que não estavam nele. A frase narra a situação, nunca é imperativa dirigida ao usuário. Grafia idêntica à de right_answer. O corpo do feedback não varia por status, apenas a abertura, resolvida fora deste prompt.
 
 exemplo (exhausted):
-- He felt exhausted after the double shift at work.
+- pergunta: After the double shift at work, he felt (exausto).
+- feedback: After the double shift at work, he felt exhausted.
 
 exemplo (postpone):
-- We had to postpone the trip because of the storm.
+- pergunta: With the storm getting worse, we had no choice but to (adiar).
+- feedback: With the storm getting worse, we had no choice but to postpone.
 
 exemplo (give up):
-- She refused to give up even after three failed attempts.
+- pergunta: Even after three failed attempts, she refused to (desistir).
+- feedback: Even after three failed attempts, she refused to give up.
 
 validação:
 - A frase de uso emprega o termo, nunca o define ou o explica.
 - A frase narra a situação, nunca é uma ordem no imperativo dirigida ao usuário.
 - Não pode ser reescrita como "X significa Y" ou "X refere-se a Y".
-- A frase é a mesma da pergunta gerada, com a lacuna preenchida, nunca uma frase nova.
+- A frase é a mesma da pergunta gerada, com o termo no lugar do parêntese, nunca uma frase nova.
 - Se qualquer critério falhar, gere outro feedback com a correção.
 
 ## ADVANCED
@@ -120,7 +124,6 @@ validação:
 - A situação não dá ordem de fala ao usuário (diga, peça, avise, responda).
 - O termo em inglês não aparece em nenhum ponto da situação, incluindo a oração que vem antes do parêntese na mesma frase de duas cláusulas.
 - A situação aponta para um único termo possível.
-- O termo em parêntese deve aparecer na situação, nunca na pergunta final.
 - Situação com no máximo 15 palavras, sem contar termo em parêntese.
 - Se qualquer critério falhar, gere outra pergunta com a correção.
 
@@ -130,17 +133,20 @@ fórmula: a mesma situação da pergunta, dita em EN, com o termo de right_answe
 nota: Nunca crie cenário novo nem acrescente elementos que não estavam nele. A frase narra a situação, nunca é imperativa dirigida ao usuário. Grafia idêntica à de right_answer. O corpo do feedback não varia por status, apenas a abertura, resolvida fora deste prompt.
 
 exemplo (reluctant):
-- She was reluctant to accept the offer after the delay.
+- pergunta: The offer came after a long delay, so she felt (relutante).
+- feedback: The offer came after a long delay, so she felt reluctant.
 
 exemplo (workload):
-- His workload tripled after the merger was announced.
+- pergunta: Since the merger was announced, he can barely handle his (carga de trabalho).
+- feedback: Since the merger was announced, he can barely handle his workload.
 
 exemplo (bite the bullet):
-- After months of hesitation, he decided to bite the bullet and quit.
+- pergunta: After months of hesitation, he finally decided to (encarar de vez).
+- feedback: After months of hesitation, he finally decided to bite the bullet.
 
 validação:
 - A frase de uso emprega o termo, nunca o define ou o explica.
 - A frase narra a situação, nunca é uma ordem no imperativo dirigida ao usuário.
 - Não pode ser reescrita como "X significa Y" ou "X refere-se a Y".
-- A frase é a mesma da pergunta gerada, com a lacuna preenchida, nunca uma frase nova.
+- A frase é a mesma da pergunta gerada, com o termo no lugar do parêntese, nunca uma frase nova.
 - Se qualquer critério falhar, gere outro feedback com a correção.

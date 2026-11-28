@@ -7,6 +7,7 @@ import {
   ACTIVITY_TEXT_MAX_CHARS,
   DOMAINS,
   MAX_ACTIVITY_FOCUS,
+  MATERIAL_TEXT_MAX_CHARS,
   MAX_DOC_ITEMS_PER_DOC,
 } from "@/src/lib/constants";
 import { isValidFocusKey } from "@/src/core/focus";
@@ -17,6 +18,7 @@ import {
   startMaterialActivity,
 } from "@/src/services/new-activity-service";
 import { toActivityOutcomeResponse } from "./outcome-status";
+import { startOfUserDay } from "@/src/lib/datetime-utils";
 
 const LevelSchema = z.enum(["basic", "intermediate", "advanced"]);
 const DomainSchema = z.enum(
@@ -46,7 +48,7 @@ const CreateActivitySchema = z.discriminatedUnion("source", [
           mediaType: z.enum(["image", "pdf", "text"]),
           fileName: z.string().max(255),
           sizeBytes: z.number().int().nonnegative(),
-          text: z.string().optional(),
+          text: z.string().max(MATERIAL_TEXT_MAX_CHARS).optional(),
           mediaId: z.string().optional(),
         }),
       )
@@ -69,7 +71,10 @@ export async function POST(request: Request): Promise<Response> {
         focusKeys,
       });
       if (outcome.status !== "created") return toActivityOutcomeResponse(outcome);
-      after(() => createTextActivity(user.id, outcome.request, resolveChannel()));
+      const today = startOfUserDay(new Date(), user.timezone);
+      after(() =>
+        createTextActivity(user.id, outcome.request, resolveChannel(), today),
+      );
       return toActivityOutcomeResponse({ status: "created" });
     }
 

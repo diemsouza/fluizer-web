@@ -83,7 +83,7 @@ export const BLOG_PRACTICE_EXAMPLES: Record<string, BlogPracticeExample> = {
     opening: "Isso!",
     feedbackSentence: "No spoilers! I haven't watched the last episode yet.",
     translation: "Sem spoiler! Ainda não vi o último episódio.",
-    audioUrl: "/audio/simulator/daily_life-1.ogg",
+    audioUrl: blogPracticeAudioUrl("expressoes-em-ingles-de-series"),
   },
   "repeticao-espacada-ingles": {
     level: "basic",

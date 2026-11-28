@@ -7,7 +7,7 @@ import { Button } from "@/src/components/ui/button";
 import { PLANS_PATH } from "@/src/lib/constants";
 
 export const metadata: Metadata = {
-  title: "Fluizer | Pagamento",
+  title: "Pagamento",
   robots: "noindex",
 };
 

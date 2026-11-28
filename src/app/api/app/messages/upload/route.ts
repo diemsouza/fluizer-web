@@ -4,6 +4,7 @@ import { requireAuth } from "@/src/lib/auth/current-user";
 import { UnauthorizedError } from "@/src/lib/custom-errors";
 import type { IncomingMessage } from "@/src/types/domain";
 import { isAcceptedVoiceNote } from "@/src/core/voice-note";
+import { canPractice } from "@/src/core/access";
 import {
   processVoiceNote,
   storeVoiceNote,
@@ -52,7 +53,10 @@ export async function POST(request: Request): Promise<Response> {
     // O upload e a confirmacao do envio; transcricao e avaliacao rodam depois
     // da resposta.
     const voiceNote = await storeVoiceNote(buffer, file.type);
-    after(() => processVoiceNote(voiceNote, user.id, baseInput));
+    const canTranscribe = canPractice(user);
+    after(() =>
+      processVoiceNote(voiceNote, user.id, baseInput, { canTranscribe }),
+    );
     return Response.json({ ok: true, externalId: resolvedExternalId });
   } catch (error) {
     if (error instanceof UnauthorizedError) {

@@ -21,7 +21,7 @@ Nível e frase:
 - No nível básico, palavra ou expressão solta basta. Erros no resto da frase nunca derrubam o acerto: viram correção em feedback_note.
 - Do intermediário para cima, a pergunta pede frase completa. Com o termo válido, o status cai para partial quando a resposta não é uma frase (termo solto) ou quando a frase tem erro que muda o sentido ou a estrutura (verbo ausente, tempo trocado, ordem que não funciona em inglês). Deslize pequeno (artigo, preposição comum, digitação fora do termo) não derruba: vira correção em feedback_note.
 - Partial por termo solto: eval_tip_class é structure e eval_tip diz que a pergunta pedia uma frase completa, seguida de uma frase completa em inglês com o termo numa situação diferente da do feedback_text ("como em ..."). Esse uso pode conter o termo, porque o que se ensina é ele dentro de uma frase. feedback_note não fala da falta de frase.
-- Elementos extras da cena que o usuário descreveu corretamente recebem elogio em feedback_note, mas nunca transformam wrong ou partial em right.
+- Elementos extras da cena que o usuário descreveu corretamente são citados em feedback_note, mas nunca transformam wrong ou partial em right.
 
 Quando a resposta indicar claramente desconhecimento ("não sei", "não lembro", "esqueci", "sem ideia" ou equivalente), o status é wrong e user_unknown é true.
 
@@ -29,7 +29,7 @@ feedback_text: uma única frase em inglês que descreve a cena usando o termo, s
 
 right_answer: o termo usado no feedback_text, nunca vazio. Em right, a forma que o usuário escreveu, só com grafia e maiúsculas normalizadas. Em wrong ou partial, o item de answerKeys mais próximo do que o usuário escreveu, ou o primeiro se nenhum se aproximar.
 
-feedback_note: uma linha curta em português, impessoal, com até duas partes: a correção dos outros erros da frase (forma escrita contra forma correta) e o elogio aos elementos extras corretos. Sem correção nem extra, vazia. Nunca repete o feedback_text, nunca explica o termo alvo (isso é papel da dica), nunca abre com o resultado. Marcação: _itálico_ em termo curto em inglês, "aspas duplas" em frase completa em inglês. Máximo 30 palavras.
+feedback_note: uma linha curta em português, impessoal, com até duas partes: a correção dos outros erros da frase (forma escrita contra forma correta) e a citação dos elementos extras corretos. Sem correção nem extra, vazia. Nunca repete o feedback_text, nunca explica o termo alvo (isso é papel da dica), nunca abre com o resultado. Marcação: _itálico_ em termo curto em inglês, "aspas duplas" em frase completa em inglês. Máximo 30 palavras.
 
 image_mismatch: olhe a imagem. true quando ela não mostra o termo alvo de forma que alguém chegaria nele só olhando (mostra outra coisa, o alvo some, ou há mais de uma resposta igualmente plausível). Independe da resposta do usuário. Caso contrário, false.
 image_mismatch_reason: com image_mismatch true, frase curta em português dizendo o que a imagem mostra no lugar do alvo. Com false, null.

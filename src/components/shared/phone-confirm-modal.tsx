@@ -19,6 +19,7 @@ import {
   type OtpErrorBody,
 } from "@/src/app/login/otp-client";
 import { postJson } from "@/src/lib/api-client";
+import { track } from "@/src/lib/analytics";
 
 type PhoneConfirmModalProps = {
   open: boolean;
@@ -100,6 +101,7 @@ export function PhoneConfirmModal({
     }
     reset();
     router.refresh();
+    track("phone_confirmed", {});
     onConfirmed();
   }
 

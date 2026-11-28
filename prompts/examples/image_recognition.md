@@ -34,7 +34,7 @@ validação:
 ### feedback
 fórmula: uma única frase de uso real em EN com o primeiro termo de answerKeys, descrevendo o que aparece em "Cena da imagem", com sujeito neutro ("the person"). Use só pessoas, lugares e objetos da cena, sem repetir as palavras dela. Aproveite o resto do "Item de origem" quando couber nela. Sem explicação, sem tradução, sem exemplo adicional.
 
-nota: Grafia do termo idêntica à de right_answer. Na avaliação, aceita a opção que bate com o primeiro termo de answerKeys, pelo número do rótulo ou pelo texto da opção. image_recognition é binário, nunca usar partial. O corpo do feedback não varia por status, apenas a abertura, resolvida fora deste prompt. Se o termo for curto, expanda contexto ao redor, mantendo o termo intacto. Se o termo já for longo, não force expansão. Banda de nível A1-A2: em vez de frase elaborada, gere frase curta de até 8 palavras, com vocabulário elementar, estrutura simples e um só detalhe. Termo longo usa só as palavras necessárias.
+nota: Grafia do termo idêntica à de right_answer. right_answer é sempre a palavra ou expressão da opção correta, nunca o número do rótulo. Na avaliação, aceita a opção que bate com o primeiro termo de answerKeys, pelo número do rótulo ou pelo texto da opção. image_recognition é binário, nunca usar partial. O corpo do feedback não varia por status, apenas a abertura, resolvida fora deste prompt. Se o termo for curto, expanda contexto ao redor, mantendo o termo intacto. Se o termo já for longo, não force expansão. Banda de nível A1-A2: em vez de frase elaborada, gere frase curta de até 8 palavras, com vocabulário elementar, estrutura simples e um só detalhe. Termo longo usa só as palavras necessárias.
 
 exemplo (run):
 - The person likes to run in the park.
@@ -87,7 +87,7 @@ validação:
 ### feedback
 fórmula: uma única frase de uso real em EN com o primeiro termo de answerKeys, descrevendo o que aparece em "Cena da imagem", com sujeito neutro ("the person"). Use só pessoas, lugares e objetos da cena, sem repetir as palavras dela. Aproveite o resto do "Item de origem" quando couber nela. Sem explicação, sem tradução, sem exemplo adicional.
 
-nota: Grafia do termo idêntica à de right_answer. Na avaliação, aceita a opção que bate com o primeiro termo de answerKeys, pelo número do rótulo ou pelo texto da opção. image_recognition é binário, nunca usar partial. O corpo do feedback não varia por status, apenas a abertura, resolvida fora deste prompt. Se o termo for curto, expanda contexto ao redor, mantendo o termo intacto. Se o termo já for longo, não force expansão.
+nota: Grafia do termo idêntica à de right_answer. right_answer é sempre a palavra ou expressão da opção correta, nunca o número do rótulo. Na avaliação, aceita a opção que bate com o primeiro termo de answerKeys, pelo número do rótulo ou pelo texto da opção. image_recognition é binário, nunca usar partial. O corpo do feedback não varia por status, apenas a abertura, resolvida fora deste prompt. Se o termo for curto, expanda contexto ao redor, mantendo o termo intacto. Se o termo já for longo, não force expansão.
 
 exemplo (nervous):
 - The person looks nervous before the interview.
@@ -140,7 +140,7 @@ validação:
 ### feedback
 fórmula: uma única frase de uso real em EN com o primeiro termo de answerKeys, descrevendo o que aparece em "Cena da imagem", com sujeito neutro ("the person"). Use só pessoas, lugares e objetos da cena, sem repetir as palavras dela. Aproveite o resto do "Item de origem" quando couber nela. Sem explicação, sem tradução, sem exemplo adicional.
 
-nota: Grafia do termo idêntica à de right_answer. Na avaliação, aceita a opção que bate com o primeiro termo de answerKeys, pelo número do rótulo ou pelo texto da opção. image_recognition é binário, nunca usar partial. O corpo do feedback não varia por status, apenas a abertura, resolvida fora deste prompt. Se o termo for curto, expanda contexto ao redor, mantendo o termo intacto. Se o termo já for longo, não force expansão.
+nota: Grafia do termo idêntica à de right_answer. right_answer é sempre a palavra ou expressão da opção correta, nunca o número do rótulo. Na avaliação, aceita a opção que bate com o primeiro termo de answerKeys, pelo número do rótulo ou pelo texto da opção. image_recognition é binário, nunca usar partial. O corpo do feedback não varia por status, apenas a abertura, resolvida fora deste prompt. Se o termo for curto, expanda contexto ao redor, mantendo o termo intacto. Se o termo já for longo, não force expansão.
 
 exemplo (exhausted):
 - After the double shift, the person looks completely exhausted.

@@ -50,6 +50,7 @@ export default function FloatingCta() {
       )}
     >
       <HomeCTA
+        position="floating"
         waLabel={t("cta")}
         buttonClassName="w-full gap-2"
       />

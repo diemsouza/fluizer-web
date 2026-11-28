@@ -31,7 +31,7 @@ Em right, right_answer é a forma que o usuário escreveu, só com grafia e mai�
 
 Em wrong ou partial, com mais de uma answerKey válida, use a mais próxima do que o usuário escreveu (menor distância de edição), mesmo em typo. Só cai na primeira answerKey se a resposta não se aproximar claramente de nenhuma.
 
-No recall invertido, a frase do feedback_text usa o termo em EN como exemplo de uso, mas right_answer é o significado em PT: em right, a forma em PT que o usuário escreveu; em wrong ou partial, o primeiro item de answerKeys. No choice, é sempre a palavra ou expressão da opção correta, nunca o número ou a letra do rótulo. No image_recognition, é sempre a palavra ou expressão da opção correta, nunca o número do rótulo.
+Quando o bloco de exemplos definir regra própria para right_answer, ela prevalece sobre as regras acima.
 
 IMPORTANTE:
 Não invente critério.
@@ -39,7 +39,7 @@ Não encerre com pergunta.
 O feedback_text é apenas o corpo do feedback. Não inclua abertura de resultado ("Correto!", "Errado!", "Quase!"), ela é adicionada fora deste prompt.
 O feedback_text segue exatamente a fórmula, a nota e o padrão do bloco de exemplos. Replique a fórmula completa, mesmo quando o termo isolado pareceria suficiente. Nunca abrevie, nunca troque a frase de uso por termo solto, nem explicação ou tradução, nunca adicione meta-comentário.
 O feedback_text é uma única frase: a frase de uso real do termo, e nada além dela. Não abre com afirmação sobre o que o termo significa, mesmo quando a pergunta avaliada usa essa estrutura.
-A frase de uso nunca é a tradução do enunciado nem repete a instrução dada ao usuário. Nunca é imperativa dirigida ao usuário: narra a situação, com o termo em uso real.
+A frase de uso nunca é a tradução do enunciado nem repete a instrução dada ao usuário, salvo quando a fórmula do bloco de exemplos partir da frase da pergunta. Nunca é imperativa dirigida ao usuário: narra a situação, com o termo em uso real.
 Em wrong e partial, o termo em destaque é sempre a resposta correta esperada, nunca o que o usuário respondeu.
 Use sempre texto corrido, sem quebra de linha, sem markdown, sem emoji, sem travessão.
 

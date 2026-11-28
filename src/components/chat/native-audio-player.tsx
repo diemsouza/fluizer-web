@@ -34,6 +34,8 @@ type PlayerState = "ready" | "playing" | "paused" | "error";
 
 const DECODE_RETRY_MS = 500;
 const READY_FALLBACK_MS = 2000;
+const END_TOLERANCE_SEC = 0.1;
+const END_STALL_MS = 500;
 
 type DecodedAudio = { duration: number; waveform: number[] };
 
@@ -246,34 +248,12 @@ export function NativeAudioPlayer({
     };
   }, [interruptPlayback, markPlaying]);
 
-  // TODO: log temporario para investigar audio preso em pause no fim (iOS).
-  const logMediaEvent = useCallback((event: SyntheticEvent<HTMLAudioElement>): void => {
-    if (process.env.NODE_ENV !== "development") return;
-    const audio = event.currentTarget;
-    console.info("[NativeAudioPlayer] event", event.type, {
-      currentTime: audio.currentTime,
-      elementDuration: audio.duration,
-      decodedDuration: durationRef.current,
-      paused: audio.paused,
-      ended: audio.ended,
-      readyState: audio.readyState,
-    });
-  }, []);
-
   const handleError = useCallback((): void => {
     const code = audioRef.current?.error?.code;
     console.error("[NativeAudioPlayer] media error", code);
     setState("error");
     if (code === MediaError.MEDIA_ERR_SRC_NOT_SUPPORTED) onUnsupported?.();
   }, [onUnsupported]);
-
-  const handlePause = useCallback((): void => {
-    markPlaying(false);
-    const audio = audioRef.current;
-    if (!audio || audio.ended) return;
-    setProgress(audio.currentTime);
-    setState("paused");
-  }, [markPlaying]);
 
   const handleEnded = useCallback((): void => {
     markPlaying(false);
@@ -284,17 +264,60 @@ export function NativeAudioPlayer({
     setState("ready");
   }, [interruptPlayback, markPlaying]);
 
+  const handlePause = useCallback((): void => {
+    const audio = audioRef.current;
+    if (!audio) return;
+    if (audio.ended) {
+      handleEnded();
+      return;
+    }
+    markPlaying(false);
+    setProgress(audio.currentTime);
+    setState((current) => (current === "playing" ? "paused" : current));
+  }, [markPlaying, handleEnded]);
+
+  const finishPlayback = useCallback((): void => {
+    const audio = audioRef.current;
+    if (audio) {
+      audio.pause();
+      audio.currentTime = 0;
+    }
+    handleEnded();
+  }, [handleEnded]);
+
+  // O iOS as vezes nao entrega o "ended" (ou entrega um "playing" depois dele),
+  // entao durante a reproducao a tela confere o proprio elemento.
   useEffect(() => {
     if (state !== "playing") return;
     let frame = 0;
-    const tick = (): void => {
+    let lastTime = -1;
+    let lastAdvanceAt = 0;
+    const tick = (now: number): void => {
       const audio = audioRef.current;
-      if (audio) paintProgress(audio.currentTime);
+      if (!audio) return;
+      if (audio.currentTime !== lastTime) {
+        lastTime = audio.currentTime;
+        lastAdvanceAt = now;
+      }
+      const total = durationRef.current;
+      const isStalledAtEnd =
+        total > 0 &&
+        audio.currentTime >= total - END_TOLERANCE_SEC &&
+        now - lastAdvanceAt >= END_STALL_MS;
+      if (audio.ended || isStalledAtEnd) {
+        finishPlayback();
+        return;
+      }
+      if (audio.paused) {
+        handlePause();
+        return;
+      }
+      paintProgress(audio.currentTime);
       frame = requestAnimationFrame(tick);
     };
     frame = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(frame);
-  }, [state, paintProgress]);
+  }, [state, paintProgress, handlePause, finishPlayback]);
 
   const handlePlayPause = useCallback(() => {
     const audio = audioRef.current;
@@ -304,7 +327,7 @@ export function NativeAudioPlayer({
     }
     if (!audio) return;
 
-    if (!audio.paused) {
+    if (!audio.paused && !audio.ended) {
       audio.pause();
       return;
     }
@@ -350,28 +373,18 @@ export function NativeAudioPlayer({
         src={audioUrl}
         preload={isVisible ? "auto" : "none"}
         onLoadedMetadata={syncDuration}
-        onDurationChange={(e) => {
-          logMediaEvent(e);
-          syncDuration();
-        }}
-        onWaiting={logMediaEvent}
-        onStalled={logMediaEvent}
+        onDurationChange={syncDuration}
         onTimeUpdate={(e) => setProgress(e.currentTarget.currentTime)}
         onSeeked={(e) => setProgress(e.currentTarget.currentTime)}
         onCanPlay={() => setIsReady(true)}
         onLoadedData={() => setIsReady(true)}
-        onPlaying={() => {
+        onPlaying={(e) => {
+          if (e.currentTarget.paused || e.currentTarget.ended) return;
           markPlaying(true);
           setState("playing");
         }}
-        onPause={(e) => {
-          logMediaEvent(e);
-          handlePause();
-        }}
-        onEnded={(e) => {
-          logMediaEvent(e);
-          handleEnded();
-        }}
+        onPause={handlePause}
+        onEnded={handleEnded}
         onError={handleError}
       />
       <div className={`flex items-center gap-3${isError ? " opacity-50" : ""}`}>

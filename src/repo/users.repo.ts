@@ -8,6 +8,7 @@ import {
 } from "../types/domain";
 import type { ResolvedActivityRequest } from "../core/activity-request";
 import { getNearestReminderTimeSlot } from "../core/daily-reminder-time";
+import { runSerializable } from "./serializable";
 
 export async function findUserById(id: string): Promise<User | null> {
   return prisma.user.findUnique({ where: { id } });
@@ -17,11 +18,14 @@ export async function findUserByPhone(phone: string): Promise<User | null> {
   return prisma.user.findUnique({ where: { phone } });
 }
 
-export async function markUserOnboarded(userId: string): Promise<void> {
-  await prisma.user.update({
-    where: { id: userId },
+// Update condicional: duas aberturas ao mesmo tempo nao rodam o onboarding
+// duas vezes.
+export async function claimUserOnboarding(userId: string): Promise<boolean> {
+  const { count } = await prisma.user.updateMany({
+    where: { id: userId, onboardedAt: null },
     data: { onboardedAt: new Date() },
   });
+  return count > 0;
 }
 
 export async function updateUserPlanStatus(
@@ -32,6 +36,16 @@ export async function updateUserPlanStatus(
     where: { id: userId },
     data: { planStatus, planStatusUpdatedAt: new Date() },
   });
+}
+
+// Job em lote: sem filtro por userId, como a consulta do lembrete. Conta
+// cortesia (planExpiresAt nulo) nunca expira, igual ao canPractice.
+export async function expireEndedPlans(now: Date): Promise<number> {
+  const { count } = await prisma.user.updateMany({
+    where: { planStatus: "active", planExpiresAt: { lt: now } },
+    data: { planStatus: "expired", planStatusUpdatedAt: now },
+  });
+  return count;
 }
 
 export async function updateUserLevel(
@@ -46,23 +60,22 @@ export async function updateUserPendingIntent(
   intent: string | null,
   metadata: Prisma.InputJsonValue | null = null,
 ): Promise<void> {
-  const current = await findUserMetadata(userId);
-  const rest = Object.fromEntries(
-    Object.entries(current).filter(([key]) => key !== "intent_data"),
-  );
-  const nextMetadata =
-    intent && metadata !== null ? { ...rest, intent_data: metadata } : rest;
-  await prisma.user.update({
-    where: { id: userId },
-    data: {
-      pendingIntent: intent,
-      pendingIntentAt: intent ? new Date() : null,
-      metadata:
-        Object.keys(nextMetadata).length > 0
-          ? (nextMetadata as Prisma.InputJsonObject)
-          : Prisma.DbNull,
+  await updateUserMetadata(
+    userId,
+    (current) => {
+      const rest = omitKey(current, "intent_data");
+      return intent && metadata !== null
+        ? { ...rest, intent_data: metadata as Prisma.JsonValue }
+        : rest;
     },
-  });
+    { pendingIntent: intent, pendingIntentAt: intent ? new Date() : null },
+  );
+}
+
+function toJsonObject(metadata: Prisma.JsonValue | undefined): Prisma.JsonObject {
+  return metadata && typeof metadata === "object" && !Array.isArray(metadata)
+    ? metadata
+    : {};
 }
 
 async function findUserMetadata(userId: string): Promise<Prisma.JsonObject> {
@@ -70,10 +83,42 @@ async function findUserMetadata(userId: string): Promise<Prisma.JsonObject> {
     where: { id: userId },
     select: { metadata: true },
   });
-  const metadata = user?.metadata;
-  return metadata && typeof metadata === "object" && !Array.isArray(metadata)
-    ? metadata
-    : {};
+  return toJsonObject(user?.metadata);
+}
+
+// Le e grava na mesma transacao: chaves diferentes gravadas ao mesmo tempo
+// (pedido de atividade, aviso de telefone, link) nao se apagam.
+async function updateUserMetadata(
+  userId: string,
+  change: (current: Prisma.JsonObject) => Prisma.JsonObject,
+  extraData: Prisma.UserUpdateInput = {},
+): Promise<void> {
+  await runSerializable(async (tx) => {
+    const user = await tx.user.findUnique({
+      where: { id: userId },
+      select: { metadata: true },
+    });
+    const next = change(toJsonObject(user?.metadata));
+    await tx.user.update({
+      where: { id: userId },
+      data: {
+        ...extraData,
+        metadata:
+          Object.keys(next).length > 0
+            ? (next as Prisma.InputJsonObject)
+            : Prisma.DbNull,
+      },
+    });
+  });
+}
+
+function omitKey(
+  metadata: Prisma.JsonObject,
+  key: string,
+): Prisma.JsonObject {
+  return Object.fromEntries(
+    Object.entries(metadata).filter(([entryKey]) => entryKey !== key),
+  );
 }
 
 export async function findUserSignedLink(
@@ -94,11 +139,10 @@ export async function updateUserSignedLink(
   userId: string,
   signedLink: UserSignedLinkMetadata,
 ): Promise<void> {
-  const metadata = await findUserMetadata(userId);
-  await prisma.user.update({
-    where: { id: userId },
-    data: { metadata: { ...metadata, ...signedLink } },
-  });
+  await updateUserMetadata(userId, (current) => ({
+    ...current,
+    ...signedLink,
+  }));
 }
 
 export async function findUserActivityCreation(
@@ -116,40 +160,29 @@ export async function findUserActivityCreation(
   };
 }
 
+// Sem request grava so o horario: a marcacao sai antes da extracao do pedido.
 export async function markUserActivityCreating(
   userId: string,
-  request: ResolvedActivityRequest,
+  request?: ResolvedActivityRequest,
 ): Promise<void> {
-  const metadata = await findUserMetadata(userId);
-  await prisma.user.update({
-    where: { id: userId },
-    data: {
-      metadata: {
-        ...metadata,
-        lastActivityRequest: request,
-        activityCreatingAt: new Date().toISOString(),
-      },
-    },
-  });
+  await updateUserMetadata(userId, (current) => ({
+    ...current,
+    ...(request ? { lastActivityRequest: request as Prisma.JsonObject } : {}),
+    activityCreatingAt: new Date().toISOString(),
+  }));
 }
 
 export async function clearUserActivityCreating(userId: string): Promise<void> {
-  const current = await findUserMetadata(userId);
-  const metadata = Object.fromEntries(
-    Object.entries(current).filter(([key]) => key !== "activityCreatingAt"),
+  await updateUserMetadata(userId, (current) =>
+    omitKey(current, "activityCreatingAt"),
   );
-  await prisma.user.update({
-    where: { id: userId },
-    data: { metadata: metadata as Prisma.InputJsonObject },
-  });
 }
 
 export async function markUserPhonePrompted(userId: string): Promise<void> {
-  const metadata = await findUserMetadata(userId);
-  await prisma.user.update({
-    where: { id: userId },
-    data: { metadata: { ...metadata, phonePromptedAt: new Date().toISOString() } },
-  });
+  await updateUserMetadata(userId, (current) => ({
+    ...current,
+    phonePromptedAt: new Date().toISOString(),
+  }));
 }
 
 export async function updateUserPhone(
@@ -177,6 +210,33 @@ export async function updateUserPlan(
         : {}),
     },
   });
+}
+
+// Update condicional: dois invoice.paid ao mesmo tempo, so um aplica o periodo
+// (e manda a confirmacao). O outro encontra o mesmo valor ja gravado.
+export async function applyPaidPlan(
+  userId: string,
+  planExpiresAt: Date,
+): Promise<boolean> {
+  const now = new Date();
+  const { count } = await prisma.user.updateMany({
+    where: {
+      id: userId,
+      // planExpiresAt nulo entra a parte: no SQL o NOT com NULL nao casa.
+      OR: [
+        { planExpiresAt: null },
+        { NOT: { planCode: "pro", planStatus: "active", planExpiresAt } },
+      ],
+    },
+    data: {
+      planCode: "pro",
+      planStatus: "active",
+      planExpiresAt,
+      planCodeUpdatedAt: now,
+      planStatusUpdatedAt: now,
+    },
+  });
+  return count > 0;
 }
 
 export async function updateUserCheckoutData(
@@ -226,18 +286,30 @@ export async function fetchUserStats(): Promise<UserStat> {
   return { total, active, trial, pro, expired, recent };
 }
 
-export async function updateUserLastRequest(
+// Mesmo criterio do isTurnInProgress, num update so: duas mensagens ao mesmo
+// tempo nunca pegam o turno juntas. lastResponseAt preenchido ja e o fim do
+// turno anterior, porque a trava zera esse campo.
+export async function claimUserTurn(
   userId: string,
   messageId: string,
-): Promise<void> {
-  await prisma.user.update({
-    where: { id: userId },
+  staleBefore: Date,
+): Promise<boolean> {
+  const { count } = await prisma.user.updateMany({
+    where: {
+      id: userId,
+      OR: [
+        { lastRequestAt: null },
+        { lastResponseAt: { not: null } },
+        { lastRequestAt: { lt: staleBefore } },
+      ],
+    },
     data: {
       lastRequestAt: new Date(),
       lastMessageId: messageId,
       lastResponseAt: null,
     },
   });
+  return count > 0;
 }
 
 export async function updateUserLastResponse(
@@ -376,7 +448,7 @@ export async function findUsersForDailyReminder(
       id: { in: candidateIds },
       status: "active",
       planStatus: "active",
-      planExpiresAt: { gt: new Date() },
+      OR: [{ planExpiresAt: null }, { planExpiresAt: { gt: new Date() } }],
       activities: { some: { status: "active", deletedAt: null } },
     },
     include: DAILY_REMINDER_USER_INCLUDE,

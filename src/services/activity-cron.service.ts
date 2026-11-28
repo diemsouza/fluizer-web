@@ -1,11 +1,14 @@
 import {
+  findCurrentActivityByUser,
   findEligibleActivities,
   incrementActivityFormatFallback,
+  incrementActivityQuestionCount,
   updateActivity,
 } from "../repo/activities.repo";
 import {
   findDocById,
   findPendingDocByUser,
+  findStalePendingDocs,
   updateDoc,
 } from "../repo/docs.repo";
 import {
@@ -29,10 +32,11 @@ import {
   formatQuestion,
   pickImageRecognitionPrompt,
   formatActivityStart,
+  formatFirstQuestionFailed,
+  formatDocProcessingTimedOut,
 } from "../core/formatters";
 import { canPractice } from "../core/access";
 import {
-  DOC_PROCESSING_TIMEOUT_MS,
   MAX_RETRY_ATTEMPTS,
   RETRY_DELAY_MS,
   DOC_PENDING_TIMEOUT_MS,
@@ -55,7 +59,7 @@ import {
   validateGeneratedQuestion,
   sanitizeQuestionData,
 } from "../core/format-loader";
-import { startOfDay } from "date-fns";
+import { startOfUserDay } from "../lib/datetime-utils";
 import { ulid } from "ulid";
 import { storeQuestionImage } from "./question-image-service";
 import { storeQuestionAudio } from "./question-audio-service";
@@ -75,14 +79,52 @@ type CronResult = {
   errors: number;
 };
 
+const STALE_DOC_BATCH_SIZE = 100;
+
+async function failStalePendingDoc(
+  doc: { id: string; userId: string },
+  channel: MessageChannel,
+): Promise<void> {
+  await updateDoc(doc.id, doc.userId, {
+    status: "failed",
+    error: `Doc pending more than ${DOC_PENDING_TIMEOUT_MS} ms.`,
+  });
+  const user = await findUserById(doc.userId);
+  if (!user) return;
+  const activity = await findCurrentActivityByUser(doc.userId);
+  await sendAndSaveMessage({
+    channel,
+    userId: doc.userId,
+    activityId: activity?.id,
+    message: formatDocProcessingTimedOut(),
+    intent: "system_error",
+    today: startOfUserDay(new Date(), user.timezone),
+  });
+}
+
+async function failStalePendingDocs(channel: MessageChannel): Promise<number> {
+  const createdBefore = new Date(Date.now() - DOC_PENDING_TIMEOUT_MS);
+  const docs = await findStalePendingDocs(createdBefore, STALE_DOC_BATCH_SIZE);
+  let errors = 0;
+  for (const doc of docs) {
+    try {
+      await failStalePendingDoc(doc, channel);
+    } catch (err) {
+      console.error(`[processActivityCron] stale doc ${doc.id} error:`, err);
+      errors++;
+    }
+  }
+  return errors;
+}
+
 export async function processActivityCron(
   channel: MessageChannel,
 ): Promise<CronResult> {
+  let errors = await failStalePendingDocs(channel);
   const activities = await findEligibleActivities(100);
 
   let processed = 0;
   let skipped = 0;
-  let errors = 0;
 
   for (const activity of activities) {
     try {
@@ -94,51 +136,12 @@ export async function processActivityCron(
 
       const pendingDoc = await findPendingDocByUser(activity.userId);
       if (pendingDoc) {
-        const pendingAgeMs = Date.now() - pendingDoc.createdAt.getTime();
-        if (pendingAgeMs > DOC_PENDING_TIMEOUT_MS) {
-          await updateDoc(pendingDoc.id, activity.userId, {
-            status: "failed",
-            error: `Doc pending more than ${DOC_PENDING_TIMEOUT_MS} ms.`,
-          });
-          const msg =
-            "Não consegui processar seu conteúdo. Tenta mandar de novo.";
-          await sendAndSaveMessage({
-            channel,
-            userId: activity.userId,
-            activityId: activity.id,
-            message: { text: msg },
-            intent: "system_error",
-            today: startOfDay(new Date()),
-          });
-        }
         skipped++;
         continue;
       }
 
       const doc = await findDocById(activity.docId, activity.userId);
       if (!doc) {
-        skipped++;
-        continue;
-      }
-
-      if (doc.status === "processing") {
-        const ageMs = Date.now() - doc.createdAt.getTime();
-        if (ageMs > DOC_PROCESSING_TIMEOUT_MS) {
-          await updateDoc(doc.id, activity.userId, {
-            status: "failed",
-            error: `Doc processing more than ${DOC_PROCESSING_TIMEOUT_MS} ms.`,
-          });
-          const msg =
-            "Não consegui processar seu conteúdo. Tenta mandar de novo.";
-          await sendAndSaveMessage({
-            channel,
-            userId: activity.userId,
-            activityId: activity.id,
-            message: { text: msg },
-            intent: "system_error",
-            today: startOfDay(new Date()),
-          });
-        }
         skipped++;
         continue;
       }
@@ -221,7 +224,33 @@ async function sendCadenceQuestion(
   });
 }
 
+// Sem a primeira pergunta nao existe feedback, entao o Continuar nao aparece:
+// o aviso aponta para /continuar, que gera a pergunta nesse estado.
 export async function sendFirstQuestionNow(
+  activity: Activity,
+  today: Date,
+  channel: MessageChannel,
+  replyToMessageId?: string,
+): Promise<boolean> {
+  const isSent = await trySendFirstQuestion(
+    activity,
+    today,
+    channel,
+    replyToMessageId,
+  );
+  if (!isSent) {
+    await sendAndSaveMessage({
+      channel,
+      userId: activity.userId,
+      activityId: activity.id,
+      message: formatFirstQuestionFailed(),
+      intent: "first_question_failed",
+    });
+  }
+  return isSent;
+}
+
+async function trySendFirstQuestion(
   activity: Activity,
   today: Date,
   channel: MessageChannel,
@@ -631,9 +660,7 @@ export async function generateQuestionIfPoolNotFull(
 
   await createQuestions(activity, [questionData]);
 
-  await updateActivity(activity.id, activity.userId, {
-    questionCount: activity.questionCount + 1,
-  });
+  await incrementActivityQuestionCount(activity.id, activity.userId);
 
   return {
     poolExhausted: false,
@@ -651,7 +678,7 @@ export async function isRoundPoolExhausted(
   if (sm2) return false;
 
   const unanswered = await findNextUnansweredQuestion(
-    activity.docId,
+    activity.id,
     activity.lastQuestionId,
   );
   if (unanswered) return false;

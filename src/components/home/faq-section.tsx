@@ -27,7 +27,7 @@ export default function FaqSection() {
           {FAQ_IDS.map((id) => (
             <AccordionItem key={id} value={id}>
               <AccordionTrigger className="text-left text-[17px] text-muted-foreground hover:text-foreground hover:no-underline data-[state=open]:text-foreground">
-                {t(`items.${id}.question`)}
+                {t(`items.${id}.question`, { days: TRIAL_DAYS })}
               </AccordionTrigger>
               <AccordionContent
                 forceMount
@@ -44,6 +44,7 @@ export default function FaqSection() {
             {t("cta_text", { days: TRIAL_DAYS })}
           </p>
           <HomeCTA
+            position="faq"
             waLabel={t("cta_button")}
             buttonClassName="px-8 gap-2"
             isCtaAnchor

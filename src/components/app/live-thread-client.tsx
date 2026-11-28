@@ -38,6 +38,7 @@ import {
   consumeSentInSession,
   markSentInSession,
 } from "@/src/lib/session-sent-messages";
+import { track } from "@/src/lib/analytics";
 import type {
   ClientCommand,
   ClientCommandAction,
@@ -240,6 +241,7 @@ export function LiveThreadClient({
   const knownActivityIdRef = useRef(currentActivityId);
   const mountedAtRef = useRef(new Date().toISOString());
   const hasPhonePromptedRef = useRef(!shouldPromptPhone);
+  const trackedFirstAnswerIdRef = useRef<string | null>(null);
 
   const messagesRef = useRef(messages);
   messagesRef.current = messages;
@@ -458,7 +460,7 @@ export function LiveThreadClient({
       return;
     }
 
-    // Atividade nova e criada de forma assincrona (process-doc, onboarding):
+    // Atividade nova e criada de forma assincrona (after() da criacao, onboarding):
     // o sidebar vem do server layout e so atualiza com refresh.
     const activityId =
       typeof record.activity_id === "string" ? record.activity_id : null;
@@ -552,6 +554,12 @@ export function LiveThreadClient({
     (lastMessage.date ?? "") > mountedAtRef.current
       ? lastMessage.id
       : null;
+
+  useEffect(() => {
+    if (!phonePromptGuideId || trackedFirstAnswerIdRef.current === phonePromptGuideId) return;
+    trackedFirstAnswerIdRef.current = phonePromptGuideId;
+    track("activity_first_answer", {});
+  }, [phonePromptGuideId]);
 
   // Mensagem de comando so executa em resposta a um envio desta aba, uma vez:
   // historico, outra aba, outro dispositivo e reload nunca executam.

@@ -35,7 +35,9 @@ export const COMMANDS: Command[] = [
     id: "practice_now",
     display: "Praticar",
     aliases: ["modo intensivo"],
-    description: "Prática intensiva",
+    description: "Receber a próxima pergunta",
+    // Mesmo intent do /continuar; fora da lista, segue valendo para pill e banner.
+    autoComplete: false,
   },
   {
     id: "continue",
@@ -63,7 +65,7 @@ export const COMMANDS: Command[] = [
   },
   {
     id: "new_activity",
-    display: "Nova Atividade",
+    display: "Nova atividade",
     aliases: [
       "trocar atividade",
       "trocar de atividade",
@@ -72,7 +74,7 @@ export const COMMANDS: Command[] = [
       "criar atividade",
       "criar nova atividade",
     ],
-    description: "Cria uma atividade com tema gerado por você",
+    description: "Cria uma atividade com tema escolhido por você",
   },
   {
     id: "set_level",

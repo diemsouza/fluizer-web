@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
 import { Button } from "@/src/components/ui/button";
 import { PricingCard } from "@/src/components/shared/pricing-card";
@@ -40,6 +40,10 @@ export function PlansCheckout({
   const t = useTranslations("pricing");
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    track("view_plans", {});
+  }, []);
 
   async function handleSubscribe(interval: SubscriptionInterval) {
     setLoading(true);

@@ -17,7 +17,7 @@ Nunca faça duas perguntas na mesma frase.
 Use texto corrido, sem travessão, sem bullet points, sem markdown.
 Respeite o limite de palavras definido no bloco de exemplos.
 
-Validação obrigatória: o bloco de exemplos traz um item "validação" com os critérios objetivos que definem se a pergunta está correta para esse formato e nível. Depois de redigir a pergunta e antes de retornar, verifique cada critério, incluindo se termHint foi preenchido sempre que o conteúdo trouxer complemento em qualquer posição, se o enunciado cita uma única forma do lado que pergunta e se answerKeys contém apenas o idioma do lado da resposta. Se algum critério falhar, regenere até que todos sejam cumpridos.
+Validação obrigatória: o bloco de exemplos traz um item "validação" com os critérios objetivos que definem se a pergunta está correta para esse formato e nível. Depois de redigir a pergunta e antes de retornar, verifique cada critério e cada regra da fórmula, incluindo se termHint foi preenchido sempre que o conteúdo trouxer complemento em qualquer posição, se o enunciado cita uma única forma do lado que pergunta e se answerKeys contém apenas o idioma do lado da resposta. Se algum critério falhar, regenere até que todos sejam cumpridos.
 
 Se um par termo-significado parecer semanticamente inconsistente com alta confiança, adicione warning. Gírias, expressões idiomáticas e jargão técnico nunca recebem warning.
 
@@ -46,7 +46,7 @@ Regras do JSON:
 - term: forma canônica e limpa do termo em inglês, sem complemento, sem marcador, sem variação de capitalização inconsistente com o restante do conteúdo. É o mesmo valor usado como term ou como base do answerKeys, independente da direção do formato.
 - meaning: forma canônica e limpa do significado em português, mesma lógica do term, um valor único, não lista. Quando houver mais de uma tradução válida para o mesmo sentido, escolha a mais natural para meaning e, quando o formato usa o significado como resposta, inclua as demais em answerKeys.
 - termHint: complemento extraído de qualquer posição do bloco do item (junto ao termo ou ao significado), se não houver, retorne vazio.
-- warning: string curta em português descrevendo a inconsistência. Omita o campo quando não houver inconsistência.
+- warning: string curta em português descrevendo a inconsistência. String vazia quando não houver inconsistência.
 - imageable: só nos formatos de imagem (image_recognition, image_transcription), true ou false conforme o critério do bloco de exemplos. Nos demais formatos, null.
 - imageableReason: só nos formatos de imagem, sempre preenchido (com imageable true ou false), uma frase curta em português dizendo qual é o núcleo visual e por que a cena leva ou não a ele. Nos demais formatos, null.
 - questionImageDescription: só nos formatos de imagem (image_recognition, image_transcription) com imageable true, descrição da cena em inglês conforme o bloco de exemplos. Nos demais casos, null.
@@ -55,7 +55,7 @@ Regras do JSON:
 Formato desta pergunta: {format}
 Nível do inglês: {level}
 
-O bloco de exemplos abaixo cobre esse formato e nível. Siga a fórmula, a nota e o padrão exatos. Depois de redigir a pergunta e antes de retornar, verifique cada critério da validação e cada regra da fórmula, incluindo o limite de palavras. Se qualquer um falhar, regenere até cumprir todos.
+O bloco de exemplos abaixo cobre esse formato e nível. Siga a fórmula, a nota e o padrão exatos.
 
 ## Examples
 {question_examples}

@@ -2,11 +2,12 @@ export const runtime = "nodejs";
 
 import { NextResponse } from "next/server";
 import { headers } from "next/headers";
+import { isCronAuthorized } from "@/src/lib/auth/cron-auth";
 import { decideDailyReminders } from "@/src/services/daily-reminder-cron.service";
 
 export async function GET(): Promise<NextResponse> {
   const authHeader = (await headers()).get("authorization");
-  if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
+  if (!isCronAuthorized(authHeader)) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 

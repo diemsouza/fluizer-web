@@ -18,6 +18,7 @@ import { Button } from "@/src/components/ui/button";
 import { Textarea } from "@/src/components/ui/textarea";
 import { type Command, searchAutoCompleteCommands } from "@/src/lib/commands";
 import { capitalizeFirst, cn } from "@/src/lib/utils";
+import { VOICE_MAX_SEC, VOICE_WARN_SEC } from "@/src/lib/constants";
 import { canRecordVoice } from "@/src/lib/voice-recording";
 import { useToast } from "@/src/hooks/use-toast";
 import {
@@ -382,7 +383,9 @@ export const Composer = forwardRef<ComposerHandle, ComposerProps>(
               {isRecording && recorder.isWarning && (
                 <div className="pointer-events-none absolute inset-x-0 bottom-full z-30 mb-2 flex justify-center">
                   <span className="rounded-full bg-orange-500 px-3 py-1 text-xs font-medium text-white shadow-sm">
-                    {t("voice.time_warning")}
+                    {t("voice.time_warning", {
+                      seconds: VOICE_MAX_SEC - VOICE_WARN_SEC,
+                    })}
                   </span>
                 </div>
               )}

@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
 import { cookies } from "next/headers";
-import { startOfDay } from "date-fns";
 import { NextIntlClientProvider } from "next-intl";
 import { getLocale, getMessages } from "next-intl/server";
 import { AppHeader } from "@/src/components/app/app-header";
@@ -40,7 +39,7 @@ export default async function AppLayout({
     await Promise.all([
       findActivitiesForList(user.id),
       findCurrentActivityByUser(user.id),
-      findPracticePillState(user.id),
+      findPracticePillState(user),
       cookies(),
       getLocale(),
       getMessages(),

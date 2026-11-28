@@ -4,6 +4,7 @@ import { verifyOtp } from "@/src/services/otp-service";
 import { setSessionCookie } from "@/src/lib/auth/session-cookie";
 import { parseAttributionCookie } from "@/src/core/attribution";
 import { ATTRIBUTION_COOKIE_NAME } from "@/src/lib/constants";
+import { isValidTimeZone } from "@/src/core/timezone";
 import {
   InvalidPhoneError,
   OtpAttemptsExceededError,
@@ -14,7 +15,13 @@ import {
 const VerifyOtpSchema = z.object({
   phone: z.string().trim().min(8).max(20),
   code: z.string().trim().regex(/^\d{6}$/),
-  timezone: z.string().trim().min(1).optional(),
+  timezone: z
+    .string()
+    .trim()
+    .optional()
+    .transform((value) =>
+      value && isValidTimeZone(value) ? value : undefined,
+    ),
 });
 
 export async function POST(request: Request): Promise<Response> {

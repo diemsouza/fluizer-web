@@ -9,9 +9,9 @@ exemplo (garden):
 - "I have a ______ behind my house." (jardim)
 
 exemplo (bus):
-- "______ arrives at eight every day." (o ônibus)
+- "The ______ arrives at eight every day." (ônibus)
 
-exemplo (ready):
+exemplo (I'm ready):
 - "How are you feeling about the trip? ______" (estou pronto)
 
 validação:
@@ -27,13 +27,16 @@ fórmula: se a lacuna era a resposta inteira, o feedback é a própria resposta.
 nota: Nunca crie frase nova, o feedback vem sempre da frase da pergunta que foi de fato gerada, completada com o termo. Grafia idêntica à de right_answer. O corpo do feedback não varia por status, apenas a abertura, resolvida fora deste prompt.
 
 exemplo (bus):
-- The bus was late again.
+- pergunta: "The ______ was late again." (ônibus)
+- feedback: The bus was late again.
 
 exemplo (tired):
-- After the trip, I felt tired.
+- pergunta: "After the trip, I felt ______." (cansado)
+- feedback: After the trip, I felt tired.
 
 exemplo (garden):
-- Her garden is full of roses.
+- pergunta: "Her ______ is full of roses." (jardim)
+- feedback: Her garden is full of roses.
 
 validação:
 - A frase é a mesma da pergunta gerada, com a lacuna preenchida, nunca uma frase nova.
@@ -69,13 +72,16 @@ fórmula: se a lacuna era a resposta inteira, o feedback é a própria resposta.
 nota: Nunca crie frase nova, o feedback vem sempre da frase da pergunta que foi de fato gerada, completada com o termo. Grafia idêntica à de right_answer. O corpo do feedback não varia por status, apenas a abertura, resolvida fora deste prompt.
 
 exemplo (crowded):
-- The train was crowded this morning.
+- pergunta: "The train was ______ this morning." (lotado)
+- feedback: The train was crowded this morning.
 
 exemplo (postpone):
-- We had to postpone the trip.
+- pergunta: "We had to ______ the trip." (adiar)
+- feedback: We had to postpone the trip.
 
 exemplo (never mind):
-- Never mind, it happens to everyone.
+- pergunta: "______, it happens to everyone." (deixa pra lá)
+- feedback: Never mind, it happens to everyone.
 
 validação:
 - A frase é a mesma da pergunta gerada, com a lacuna preenchida, nunca uma frase nova.
@@ -93,10 +99,10 @@ exemplo (sweet spot):
 - "We negotiated for hours, and we finally hit the ______ on pricing." (ponto ideal)
 
 exemplo (let's wrap this up):
-- "______ and we can move on to the next item." (resolver de uma vez)
+- "______ and we can move on to the next item." (vamos encerrar isso)
 
 exemplo (hit the sweet spot):
-- "Both sides pushed hard on pricing, and after hours of back and forth, ______." (acertamos o ponto ideal)
+- "Both sides pushed hard on pricing, and after hours of back and forth, we finally ______." (acertar o ponto ideal)
 
 validação:
 - Frase entre aspas, parêntese de tradução ao final.
@@ -111,13 +117,16 @@ fórmula: se a lacuna era a resposta inteira, o feedback é a própria resposta.
 nota: Nunca crie frase nova, o feedback vem sempre da frase da pergunta que foi de fato gerada, completada com o termo. Grafia idêntica à de right_answer. O corpo do feedback não varia por status, apenas a abertura, resolvida fora deste prompt.
 
 exemplo (reluctant):
-- She was reluctant to sign.
+- pergunta: "She was ______ to sign." (relutante)
+- feedback: She was reluctant to sign.
 
 exemplo (overwhelmed):
-- He felt overwhelmed by the deadline.
+- pergunta: "He felt ______ by the deadline." (sobrecarregado)
+- feedback: He felt overwhelmed by the deadline.
 
 exemplo (bite the bullet):
-- We had to bite the bullet.
+- pergunta: "We had to ______." (encarar de vez)
+- feedback: We had to bite the bullet.
 
 validação:
 - A frase é a mesma da pergunta gerada, com a lacuna preenchida, nunca uma frase nova.

@@ -1,4 +1,4 @@
-import { startOfDay } from "date-fns";
+import { startOfUserDay } from "../lib/datetime-utils";
 import { Activity } from "../lib/prisma";
 import {
   ActivitySummaryData,
@@ -7,13 +7,13 @@ import {
   findArchivedActivityBefore,
   findCurrentActivityByUser,
   findLatestArchivedActivity,
+  findOpenActivitiesByUser,
   updateActivity,
   updateActivityScore,
 } from "../repo/activities.repo";
 import {
-  findQuestionById,
   findQuestionScoresByActivity,
-  updateQuestion,
+  updateQuestionMetadata,
 } from "../repo/questions.repo";
 import {
   countActivityAudios,
@@ -21,6 +21,7 @@ import {
   findUserMessageDatesByActivity,
 } from "../repo/messages.repo";
 import { publishResumeSummary } from "../lib/qstash";
+import { findUserById } from "../repo/users.repo";
 import {
   computeElapsedDays,
   countActiveDays,
@@ -65,6 +66,19 @@ export async function archiveOrCancelActivity(
   });
 }
 
+// Arquiva todas as abertas, nao so a mais recente: duas criacoes ao mesmo tempo
+// nao deixam uma atividade ativa orfa.
+export async function archiveOpenActivities(
+  userId: string,
+  exceptActivityId?: string,
+): Promise<void> {
+  const open = await findOpenActivitiesByUser(userId);
+  for (const activity of open) {
+    if (activity.id === exceptActivityId) continue;
+    await archiveOrCancelActivity(activity, userId);
+  }
+}
+
 export async function findClosingSummaryMedia(
   activity: Pick<Activity, "id" | "chartCompletedMediaId">,
 ): Promise<Media | null> {
@@ -89,6 +103,7 @@ export async function resumeActivityFromWeb(
   userId: string,
   target: Activity,
   channel: MessageChannel,
+  today: Date,
 ): Promise<void> {
   const leaving = await findCurrentActivityByUser(userId);
   await switchToActivity(userId, target);
@@ -97,7 +112,7 @@ export async function resumeActivityFromWeb(
     userId,
     activityId: target.id,
     message: formatResumeSuccess(target.title),
-    today: startOfDay(new Date()),
+    today,
   });
 
   try {
@@ -119,10 +134,7 @@ export async function switchToActivity(
   userId: string,
   target: Activity,
 ): Promise<void> {
-  const current = await findCurrentActivityByUser(userId);
-  if (current && current.id !== target.id) {
-    await archiveOrCancelActivity(current, userId);
-  }
+  await archiveOpenActivities(userId, target.id);
   await updateActivity(target.id, userId, {
     status: "active",
     statusUpdatedAt: new Date(),
@@ -144,8 +156,11 @@ export async function sendResumeSummary(
 ): Promise<void> {
   const { userId, leavingActivityId, targetActivityId, channel } = params;
 
-  const target = await findActivityById(targetActivityId, userId);
-  if (!target) return;
+  const [target, user] = await Promise.all([
+    findActivityById(targetActivityId, userId),
+    findUserById(userId),
+  ]);
+  if (!target || !user) return;
   // Marco desta retomada: switchToActivity acabou de setar statusUpdatedAt. So
   // conta como "ja enviado" mensagem criada a partir daqui, assim uma retomada
   // futura da mesma atividade nao e bloqueada por um convite antigo.
@@ -157,7 +172,7 @@ export async function sendResumeSummary(
   );
   if (invite && invite.createdAt >= resumedAt) return;
 
-  const today = startOfDay(new Date());
+  const today = startOfUserDay(new Date(), user.timezone);
 
   const priorSummary = await findLastMessageByIntent(
     targetActivityId,
@@ -363,7 +378,7 @@ export async function buildPreviousActivitySummary(
     const score = await resolveActivityScore(data.id, !opts.ignoreSummaryGuard);
 
     const text = formatPreviousActivitySummary({
-      activityTitle: data.title ?? "Sem título",
+      activityTitle: data.title,
       questionCount: data.questionLimit,
       right,
       partial,
@@ -450,18 +465,13 @@ export async function isActivitySuggestionEligible(
 export async function recordFeedbackAudioPlayed(
   questionId: string,
 ): Promise<void> {
-  const question = await findQuestionById(questionId);
-  if (!question) return;
-
-  const current = (question.metadata as ScoreMetadata | null) ?? {};
-  const metadata: ScoreMetadata = {
-    ...current,
-    audioPlayedCount: (current.audioPlayedCount ?? 0) + 1,
-  };
-
-  await updateQuestion(questionId, {
-    metadata,
-    score: computeQuestionScore(metadata),
+  await updateQuestionMetadata(questionId, (stored) => {
+    const current = (stored as ScoreMetadata | null) ?? {};
+    const metadata: ScoreMetadata = {
+      ...current,
+      audioPlayedCount: (current.audioPlayedCount ?? 0) + 1,
+    };
+    return { metadata, score: computeQuestionScore(metadata) };
   });
 }
 

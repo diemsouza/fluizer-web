@@ -3,6 +3,8 @@ import { UnauthorizedError } from "@/src/lib/custom-errors";
 import { findActivityById } from "@/src/repo/activities.repo";
 import { resumeActivityFromWeb } from "@/src/services/activity-service";
 import { resolveChannel } from "@/src/lib/channels/resolve-channel";
+import { canPractice } from "@/src/core/access";
+import { startOfUserDay } from "@/src/lib/datetime-utils";
 
 export async function POST(
   request: Request,
@@ -10,6 +12,9 @@ export async function POST(
 ): Promise<Response> {
   try {
     const user = await requireAuth();
+    if (!canPractice(user)) {
+      return Response.json({ status: "plan_expired" }, { status: 403 });
+    }
     const { id } = await params;
 
     const activity = await findActivityById(id, user.id);
@@ -18,7 +23,12 @@ export async function POST(
       return Response.json({ error: "activity not archived" }, { status: 409 });
     }
 
-    await resumeActivityFromWeb(user.id, activity, resolveChannel());
+    await resumeActivityFromWeb(
+      user.id,
+      activity,
+      resolveChannel(),
+      startOfUserDay(new Date(), user.timezone),
+    );
 
     return Response.json({ activityId: activity.id });
   } catch (error) {

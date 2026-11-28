@@ -13,6 +13,7 @@ import { clearOtpRequest, readOtpRequest, saveOtpRequest } from "./otp-session";
 import { sanitizeRedirectPath } from "@/src/core/auth-routes";
 import { setUserId, track } from "@/src/lib/analytics";
 import { Button } from "@/src/components/ui/button";
+import { TRIAL_DAYS } from "@/src/lib/constants";
 import { CampaignParams } from "@/src/core/embedded-browser";
 import { GoogleButton } from "./google-button";
 import { EmbeddedBrowserStep } from "./embedded-browser-step";
@@ -54,7 +55,7 @@ function LoginHeader({
         {t(`title_${variant}`)}
       </h1>
       <p className="text-base text-muted-foreground">
-        {t(`subtitle_${variant}`)}
+        {t(`subtitle_${variant}`, { days: TRIAL_DAYS })}
       </p>
     </div>
   );

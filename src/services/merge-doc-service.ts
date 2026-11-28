@@ -1,4 +1,8 @@
-import { findDocById, updateDoc } from "../repo/docs.repo";
+import {
+  activatePendingDoc,
+  findDocById,
+  updateDoc,
+} from "../repo/docs.repo";
 import { findDocItemsByDoc } from "../repo/doc-items.repo";
 import {
   formatInvalidContentMessage,
@@ -10,7 +14,7 @@ import {
   findLastActiveActivityByUser,
 } from "../repo/activities.repo";
 import {
-  archiveOrCancelActivity,
+  archiveOpenActivities,
   buildPreviousActivitySummary,
 } from "./activity-service";
 import { generateDocSections } from "../vendors/llm.vendor";
@@ -29,6 +33,7 @@ import {
   DEFAULT_MESSAGE_INTERVAL_SEC,
 } from "../lib/constants";
 import { sanitizeText } from "../lib/utils";
+import { startOfUserDay } from "../lib/datetime-utils";
 import { sendAndSaveMessage, waitBeforeSend } from "./message-sender-service";
 import { sendFirstQuestionNow } from "./activity-cron.service";
 import { calculatePoolSize } from "../core/pool-size";
@@ -137,30 +142,45 @@ export async function mergeDoc(
       return;
     }
 
+    if (docSectionResult.content.trim().length === 0) {
+      await updateDoc(docId, userId, {
+        status: "failed",
+        error: "Nenhuma seção gerada.",
+      });
+      const msg = formatDocNoQuestions();
+      await sendAndSaveMessage({
+        channel,
+        userId,
+        activityId: activeActivity?.id,
+        message: msg,
+        intent: "system_error",
+      });
+      return;
+    }
+
     const combinedContent = docSectionResult.content;
 
-    await updateDoc(docId, userId, {
+    // /cancelar durante a extracao ja respondeu e marcou o doc: nada a criar.
+    const isActivated = await activatePendingDoc(docId, userId, {
       title: docSectionResult.title,
       rawContent: consolidatedRaw,
       content: combinedContent,
       level: docSectionResult.level,
-      status: "active",
       docType,
     });
+    if (!isActivated) return;
 
     const userLevel = user.level ?? docSectionResult.level;
 
     const currentActivity = await findCurrentActivityByUser(userId);
-    if (currentActivity) {
-      await archiveOrCancelActivity(currentActivity, userId);
-    }
+    await archiveOpenActivities(userId);
 
     const now = new Date();
     const intervalMinutes = NEXT_MESSAGE_INTERVAL_MIN;
     const nextMessageAt = new Date(
       now.getTime() + FIRST_MESSAGE_INTERVAL_MIN * 60 * 1000,
     );
-    const date = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const date = startOfUserDay(now, user.timezone);
 
     const questionLimit = calculatePoolSize(sanitizeText(combinedContent));
 
@@ -176,53 +196,38 @@ export async function mergeDoc(
       questionLimit,
     });
 
-    if (docSectionResult.content.trim().length > 0) {
-      const activityCount = await incrementDailyActivityCount(userId, date);
-      const msg = formatDocProcessed(
-        false,
-        MAX_ACTIVITIES_PER_DAY - activityCount,
-        userLevel,
+    const activityCount = await incrementDailyActivityCount(userId, date);
+    const msg = formatDocProcessed(
+      false,
+      MAX_ACTIVITIES_PER_DAY - activityCount,
+      userLevel,
+    );
+    const summary = currentActivity
+      ? await buildPreviousActivitySummary(userId, {
+          activityId: currentActivity.id,
+          forceRegenerate: true,
+        })
+      : null;
+    await sendAndSaveMessage({
+      channel,
+      userId,
+      activityId: activity.id,
+      message: msg,
+    });
+    if (summary) {
+      await waitBeforeSend(
+        channel,
+        userId,
+        DEFAULT_MESSAGE_INTERVAL_SEC * 1000,
       );
-      const summary = currentActivity
-        ? await buildPreviousActivitySummary(userId, {
-            activityId: currentActivity.id,
-            forceRegenerate: true,
-          })
-        : null;
       await sendAndSaveMessage({
         channel,
         userId,
         activityId: activity.id,
-        message: msg,
-      });
-      if (summary) {
-        await waitBeforeSend(
-          channel,
-          userId,
-          DEFAULT_MESSAGE_INTERVAL_SEC * 1000,
-        );
-        await sendAndSaveMessage({
-          channel,
-          userId,
-          activityId: activity.id,
-          message: summary,
-        });
-      }
-      await sendFirstQuestionNow(activity, date, channel);
-    } else {
-      await updateDoc(docId, userId, {
-        status: "failed",
-        error: "Nenhuma seção gerada.",
-      });
-      const msg = formatDocNoQuestions();
-      await sendAndSaveMessage({
-        channel,
-        userId,
-        activityId: activity.id,
-        message: msg,
-        intent: "system_error",
+        message: summary,
       });
     }
+    await sendFirstQuestionNow(activity, date, channel);
   } catch (err) {
     console.error(`[mergeDoc] unexpected error for doc ${docId}`, err);
     await updateDoc(docId, userId, {

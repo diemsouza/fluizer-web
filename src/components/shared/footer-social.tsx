@@ -1,12 +1,13 @@
 "use client";
 
 import { Facebook, Instagram, Linkedin, Twitter } from "lucide-react";
+import { SOCIAL_PROFILES } from "@/src/lib/constants";
 
 export function FooterSocial() {
   return (
     <div className="flex items-center justify-center gap-6 py-4 opacity-80 hover:opacity-100 transition">
       <a
-        href="https://instagram.com/usefluizer"
+        href={SOCIAL_PROFILES.instagram}
         target="_blank"
         rel="noreferrer"
         aria-label="Instagram"
@@ -16,7 +17,7 @@ export function FooterSocial() {
       </a>
 
       <a
-        href="https://linkedin.com/company/fluizer"
+        href={SOCIAL_PROFILES.linkedin}
         target="_blank"
         rel="noreferrer"
         aria-label="LinkedIn"
@@ -36,7 +37,7 @@ export function FooterSocial() {
       </a> */}
 
       <a
-        href="https://facebook.com/fluizer"
+        href={SOCIAL_PROFILES.facebook}
         target="_blank"
         rel="noreferrer"
         aria-label="Facebook"

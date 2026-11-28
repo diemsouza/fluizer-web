@@ -53,7 +53,7 @@ describe("formatDocProcessed", () => {
 });
 
 describe("formatActivitySuggestion", () => {
-  it("fora do intensivo sugere continuar praticando e traz botão Praticar", () => {
+  it("fora do intensivo sugere continuar praticando e traz botão Continuar", () => {
     const message = formatActivitySuggestion({ isIntensiveMode: false });
     expect(message.text).toContain("🔄");
     expect(message.text).toContain("`/nova atividade`");
@@ -61,11 +61,11 @@ describe("formatActivitySuggestion", () => {
     expect(message.text).not.toContain("aguarde");
     expect(message.interactive?.buttons).toEqual([
       { id: "new_activity_suggestion", label: "Nova atividade" },
-      { id: "practice_now", label: "Praticar", type: "reply" },
+      { id: "practice_now", label: "Continuar", type: "reply" },
     ]);
   });
 
-  it("no intensivo sugere aguardar a próxima pergunta, sem botão Praticar", () => {
+  it("no intensivo sugere aguardar a próxima pergunta, sem botão Continuar", () => {
     const message = formatActivitySuggestion({ isIntensiveMode: true });
     expect(message.text).toContain("ou apenas aguarde a próxima pergunta.");
     expect(message.interactive?.body).toContain(

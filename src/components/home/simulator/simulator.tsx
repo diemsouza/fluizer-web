@@ -13,6 +13,7 @@ import { buildPracticeQuestionMessage } from "@/src/components/chat/practice-tur
 import type { Message } from "@/src/components/chat/types";
 import { HomeCTA } from "@/src/components/home/home-cta";
 import { useHomeDomain } from "@/src/components/home/home-domain-provider";
+import { track } from "@/src/lib/analytics";
 import { SIMULATOR_ROTEIROS } from "./roteiro-data";
 import { DomainSelector } from "./domain-selector";
 import { DesktopShell } from "./desktop-shell";
@@ -68,6 +69,7 @@ export default function Simulator() {
           onChange={(domain) => {
             setActiveDomain(domain);
             homeDomain?.selectDomain(domain);
+            track("simulator_tab", { domain });
           }}
         />
 
@@ -97,6 +99,7 @@ export default function Simulator() {
         <div className="max-w-xl text-center flex flex-col items-center gap-4 pt-10 md:pt-16">
           <p className="text-muted-foreground">{t("differentiation_line")}</p>
           <HomeCTA
+            position="simulator"
             waLabel={t("cta")}
             buttonClassName="px-8 gap-2"
             isCtaAnchor

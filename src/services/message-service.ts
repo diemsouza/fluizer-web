@@ -18,9 +18,11 @@ import {
 } from "../core/limits";
 import {
   formatCommandList,
+  formatUnknownCommand,
   formatActivitiesList,
   selectArchivedActivities,
   formatPauseSuccess,
+  formatActivityIsPaused,
   formatNoPausableDocs,
   formatResumeSuccess,
   formatNoPausedDocs,
@@ -43,7 +45,6 @@ import {
   formatAwaitingContinue,
   formatDailyPracticeLimitReached,
   formatReviewUpToDate,
-  formatIntensiveDailyLimitReached,
   formatOnboardingMsg1,
   formatOnboardingMsg2,
   formatOnboardingMsg3,
@@ -60,11 +61,11 @@ import {
   updateMessageInteractive,
 } from "../repo/messages.repo";
 import {
-  markUserOnboarded,
+  claimUserOnboarding,
   updateUserPlanStatus,
   findUserById,
   updateUserPendingIntent,
-  updateUserLastRequest,
+  claimUserTurn,
   updateUserLastResponse,
 } from "../repo/users.repo";
 import { resolveBlockedPaymentLink } from "./stripe-checkout-service";
@@ -136,9 +137,8 @@ import {
   CONTINUE_PRACTICE_BUTTON_ID,
   INTENSIVE_UNTIL_MIN,
   AFTER_FEEDBACK_MESSAGE_INTERVAL_SEC,
-  MESSAGE_SUPPRESSION_SEC,
+  PRACTICE_TURN_MAX_SEC,
   ONBOARDING_MESSAGE_INTERVAL_SEC,
-  DAILY_PRACTICE_LIMIT,
   DEFAULT_MESSAGE_INTERVAL_SEC,
   EVAL_TIP_ALTERNATIVE_FORMATS,
   AUDIO_QUESTION_FORMATS,
@@ -172,7 +172,7 @@ import {
 } from "./admin-service";
 import { resolveCommand } from "../lib/commands";
 import { markWaitlistActive } from "../repo/waitlist.repo";
-import { startOfDay } from "date-fns";
+import { startOfUserDay } from "../lib/datetime-utils";
 import { MessageChannel } from "../types/message-channel";
 import { FormattedMessage } from "../types/out-message";
 
@@ -207,15 +207,18 @@ export async function handleIncomingMessage(
   const activeActivity = await findLastActiveActivityByUser(user.id);
 
   const text = input.text ?? "";
-  const today = startOfDay(new Date());
+  const today = startOfUserDay(new Date(), user.timezone);
   const messageId = input.externalId ?? "";
 
-  const isLocked =
-    user.lastRequestAt != null &&
-    (user.lastResponseAt == null || user.lastResponseAt < user.lastRequestAt) &&
-    Date.now() - user.lastRequestAt.getTime() < MESSAGE_SUPPRESSION_SEC * 1000;
+  const hasClaimedTurn = await claimUserTurn(
+    user.id,
+    messageId,
+    new Date(Date.now() - PRACTICE_TURN_MAX_SEC * 1000),
+  );
 
-  if (isLocked) {
+  if (!hasClaimedTurn) {
+    // Sem notifyTypingStop aqui: o turno que segura a trava ainda esta rodando
+    // e manda o fim dele, que ja faz o cliente reconsultar o Continuar.
     if (input.buttonId === CONTINUE_PRACTICE_BUTTON_ID) return;
     await saveMessage({
       id: input.messageId,
@@ -233,12 +236,14 @@ export async function handleIncomingMessage(
     return;
   }
 
-  await updateUserLastRequest(user.id, messageId);
-
   try {
     // Audio sem fala ou com transcricao inutilizavel nao chega a avaliacao: a
     // pergunta continua pendente e nenhuma chamada de LLM e gasta.
-    if (input.isVoiceNote && isUnusableTranscription(rawText)) {
+    if (
+      input.isVoiceNote &&
+      canPractice(user) &&
+      isUnusableTranscription(rawText)
+    ) {
       await saveUserMsg({
         userId: user.id,
         content: rawText,
@@ -298,7 +303,8 @@ export async function handleIncomingMessage(
       user.planExpiresAt &&
       user.planExpiresAt < new Date()
     ) {
-      // TODO: refactory - mover para rotina diária de cron
+      // O cron diario (processPlanExpiration) vira o status em lote; aqui cobre
+      // quem manda mensagem antes da proxima execucao.
       await updateUserPlanStatus(user.id, "expired");
       user.planStatus = "expired";
     }
@@ -321,7 +327,10 @@ export async function handleIncomingMessage(
           input,
           today,
         });
-        const cmdReply = formatCommandList(user.level ?? null);
+        const cmdReply =
+          parsed.intent === "unknown_command"
+            ? formatUnknownCommand(firstWord, user.level ?? null)
+            : formatCommandList(user.level ?? null);
         await sendAndSaveMessage({
           channel,
           userId: user.id,
@@ -479,9 +488,13 @@ export async function handleIncomingMessage(
     let reply: FormattedMessage = { text: "" };
 
     switch (effectiveIntent) {
-      case "list_commands":
-      case "unknown_command": {
+      case "list_commands": {
         reply = formatCommandList(user.level ?? null);
+        break;
+      }
+
+      case "unknown_command": {
+        reply = formatUnknownCommand(firstWord, user.level ?? null);
         break;
       }
 
@@ -604,7 +617,10 @@ export async function handleIncomingMessage(
 
       case "practice_now": {
         if (!activeActivity) {
-          reply = formatNoActiveActivity();
+          reply = await resolveNoActiveActivityReply(
+            user.id,
+            formatNoActiveActivity(),
+          );
           messageIntent = "free_text";
           break;
         }
@@ -616,9 +632,7 @@ export async function handleIncomingMessage(
             true,
           )
         ) {
-          const limitMsg = formatPracticeLimit(
-            practiceNowUsage?.practiceCount ?? 0,
-          );
+          const limitMsg = formatDailyPracticeLimitReached();
           await saveUserMsg({
             userId: user.id,
             activityId: activeActivity.id,
@@ -696,6 +710,7 @@ export async function handleIncomingMessage(
         const practiceActions = await findPracticeActions(
           activeActivity,
           user.id,
+          today,
         );
         if (practiceActions?.canContinue) {
           await saveUserMsg({
@@ -716,6 +731,14 @@ export async function handleIncomingMessage(
           return;
         }
 
+        await saveUserMsg({
+          userId: user.id,
+          activityId: activeActivity.id,
+          content: text,
+          intent: "practice_now",
+          input,
+          today,
+        });
         const replyActivation = formatIntensiveModeActivated({
           isIntensiveMode,
         });
@@ -741,14 +764,6 @@ export async function handleIncomingMessage(
           true,
           messageId,
         );
-        await saveUserMsg({
-          userId: user.id,
-          activityId: activeActivity.id,
-          content: text,
-          intent: "practice_now",
-          input,
-          today,
-        });
         return;
       }
 
@@ -768,8 +783,7 @@ export async function handleIncomingMessage(
         break;
       }
 
-      case "confirm":
-      case "cancel_no": {
+      case "confirm": {
         reply = formatNoPendingAction();
         messageIntent = "free_text";
         break;
@@ -789,7 +803,10 @@ export async function handleIncomingMessage(
 
       case "free_text": {
         if (!activeActivity) {
-          reply = formatNoActivity();
+          reply = await resolveNoActiveActivityReply(
+            user.id,
+            formatNoActivity(),
+          );
           break;
         }
 
@@ -914,8 +931,6 @@ export async function handleIncomingMessage(
                 question: questionForEvaluation,
                 answerKeys: pendingQuestion.answerKeys,
                 userAnswer: text,
-                attemptCount: pendingQuestion.attemptCount,
-                docContent: practiceDoc.content ?? "",
                 feedbackExamples: feedbackExamples,
                 contentOrigin: practiceDoc.source,
                 questionFormat: pendingQuestion.questionFormat ?? "",
@@ -949,27 +964,47 @@ export async function handleIncomingMessage(
                 });
                 return;
               }
-              const evalStatus = evaluation?.status ?? "wrong";
-              const feedback = evaluation
-                ? formatFeedback(evaluation, activeActivity.userLevel, {
-                    format: pendingQuestion.questionFormat,
-                    userAnswer: text,
-                  })
-                : formatFeedbackFailed();
+              // Falha nossa nao vira erro do usuario: a pergunta segue pendente,
+              // sem SM-2, score nem contadores, e as opcoes continuam livres.
+              if (!evaluation) {
+                await saveUserMsg({
+                  userId: user.id,
+                  content: text,
+                  intent: "free_text",
+                  input,
+                  today,
+                  activityId: activeActivity.id,
+                });
+                await sendAndSaveMessage({
+                  channel,
+                  userId: user.id,
+                  activityId: activeActivity.id,
+                  message: formatFeedbackFailed(),
+                  intent: "evaluation_failed",
+                  today,
+                });
+                return;
+              }
+              const evalStatus = evaluation.status;
+              const feedback = formatFeedback(
+                evaluation,
+                activeActivity.userLevel,
+                {
+                  format: pendingQuestion.questionFormat,
+                  userAnswer: text,
+                },
+              );
               // Formatos de audio nao geram audio de feedback: seria a mesma frase.
-              const feedbackAudioMediaId =
-                evaluation && !isAudioQuestion
-                  ? await resolveFeedbackAudioMediaId(
-                      evaluation,
-                      pendingQuestion,
-                      activeActivity.userLevel,
-                    )
-                  : null;
-              const feedbackSpeechText = evaluation
-                ? formatFeedbackToSpeech(evaluation)
+              const feedbackAudioMediaId = !isAudioQuestion
+                ? await resolveFeedbackAudioMediaId(
+                    evaluation,
+                    pendingQuestion,
+                    activeActivity.userLevel,
+                  )
                 : null;
+              const feedbackSpeechText = formatFeedbackToSpeech(evaluation);
               const canTipOnRight =
-                evaluation?.eval_tip_class === "alternative" &&
+                evaluation.eval_tip_class === "alternative" &&
                 !!pendingQuestion.questionFormat &&
                 EVAL_TIP_ALTERNATIVE_FORMATS.includes(
                   pendingQuestion.questionFormat,
@@ -980,20 +1015,20 @@ export async function handleIncomingMessage(
                   evaluation.eval_tip ?? "",
                 );
               const silent =
-                evaluation?.eval_tip_class === "none" ||
-                evaluation?.eval_tip_class === "spelling" ||
+                evaluation.eval_tip_class === "none" ||
+                evaluation.eval_tip_class === "spelling" ||
                 !isEvalTipClassAllowed(
                   pendingQuestion.questionFormat,
-                  evaluation?.eval_tip_class,
+                  evaluation.eval_tip_class,
                 ) ||
                 (evalStatus === "right" && !canTipOnRight);
               const evalTip =
-                !evaluation?.user_unknown && !silent
-                  ? evaluation?.eval_tip
+                !evaluation.user_unknown && !silent
+                  ? evaluation.eval_tip
                   : null;
               // silent já exclui "none" e "spelling"; cast seguro para o enum do banco
               const tipClass = evalTip
-                ? (evaluation?.eval_tip_class as EvalTipClass)
+                ? (evaluation.eval_tip_class as EvalTipClass)
                 : null;
               const tipMsg = evalTip ? formatEvalTip(evalTip) : null;
               let tipSent = false;
@@ -1004,7 +1039,7 @@ export async function handleIncomingMessage(
               const isWrongOrPartial =
                 evalStatus === "wrong" || evalStatus === "partial";
               const isAlternativeAnswer =
-                evaluation?.eval_tip_class === "alternative" &&
+                evaluation.eval_tip_class === "alternative" &&
                 !isAnswerInKeys(pendingQuestion.answerKeys, text);
               const sm2 = calcSm2(
                 pendingQuestion.easeFactor,
@@ -1025,8 +1060,8 @@ export async function handleIncomingMessage(
                   answerType,
                   isRealRevision,
                 ),
-                !!evalImage && evaluation?.image_mismatch === true,
-                evaluation?.image_mismatch_reason,
+                !!evalImage && evaluation.image_mismatch === true,
+                evaluation.image_mismatch_reason,
               );
               await updateQuestion(pendingQuestion.id, {
                 answer: text,
@@ -1047,18 +1082,14 @@ export async function handleIncomingMessage(
                       nextRevisionAt: sm2.nextRevisionAt,
                     }
                   : {}),
-                provider: evaluation?.provider,
-                model: evaluation?.model,
+                provider: evaluation.provider,
+                model: evaluation.model,
                 evalTip: evalTip || null,
                 evalTipClass: tipClass ?? null,
-                ...(evaluation
-                  ? {
-                      feedbackText: sanitizeText(evaluation.feedback_text),
-                      feedbackTranslation: sanitizeText(
-                        evaluation.feedback_translation,
-                      ),
-                    }
-                  : {}),
+                feedbackText: sanitizeText(evaluation.feedback_text),
+                feedbackTranslation: sanitizeText(
+                  evaluation.feedback_translation,
+                ),
                 metadata: clearLanguageBlockCount(scoreMetadata),
                 score: computeQuestionScore(scoreMetadata),
               });
@@ -1101,6 +1132,10 @@ export async function handleIncomingMessage(
                 canContinueIntensive &&
                 activeActivity.intensiveUntil &&
                 activeActivity.intensiveUntil > new Date();
+              // Com o Continuar a proxima pergunta nao sai aqui: a resposta segue
+              // para o final comum, com guia, dica e sugestao de troca.
+              const hasAutoNextQuestion =
+                AUTO_QUESTION_ENABLED && Boolean(isPracticingSessionActive);
               const interactionCount = activeActivity.interactionCount + 1;
               await updateActivity(activeActivity.id, user.id, {
                 waitingUser: false,
@@ -1152,9 +1187,7 @@ export async function handleIncomingMessage(
               }
 
               if (isIntensiveMode && !canContinueIntensive) {
-                const limitMsg = formatPracticeLimit(
-                  updatedCounts.practiceCount,
-                );
+                const limitMsg = formatDailyPracticeLimitReached();
                 await updateActivity(activeActivity.id, user.id, {
                   intensiveUntil: null,
                 });
@@ -1221,7 +1254,7 @@ export async function handleIncomingMessage(
                   activity: activeActivity,
                   userId: user.id,
                   isLastAnswerCorrect: evalStatus === "right",
-                  isIntensiveMode: Boolean(isPracticingSessionActive),
+                  isIntensiveMode: hasAutoNextQuestion,
                   channel,
                   today,
                   replyToMessageId: messageId,
@@ -1229,17 +1262,13 @@ export async function handleIncomingMessage(
                 return;
               }
 
-              if (isPracticingSessionActive) {
-                // AUTO_QUESTION_ENABLED false: sem proxima pergunta, as pausas
-                // so existem entre mensagens que realmente saem.
-                if (AUTO_QUESTION_ENABLED || tipMsg || hasClearedReviewQueue) {
-                  await waitBeforeSend(
-                    channel,
-                    user.id,
-                    AFTER_FEEDBACK_MESSAGE_INTERVAL_SEC * 1000,
-                    { replyToMessageId: messageId },
-                  );
-                }
+              if (hasAutoNextQuestion) {
+                await waitBeforeSend(
+                  channel,
+                  user.id,
+                  AFTER_FEEDBACK_MESSAGE_INTERVAL_SEC * 1000,
+                  { replyToMessageId: messageId },
+                );
                 if (tipMsg) {
                   tipSent = true;
                   await sendAndSaveMessage({
@@ -1251,29 +1280,22 @@ export async function handleIncomingMessage(
                     questionId: pendingQuestion.id,
                     today,
                   });
-                  if (AUTO_QUESTION_ENABLED || hasClearedReviewQueue) {
-                    await waitBeforeSend(
-                      channel,
-                      user.id,
-                      DEFAULT_MESSAGE_INTERVAL_SEC * 1000,
-                      { replyToMessageId: messageId },
-                    );
-                  }
+                  await waitBeforeSend(
+                    channel,
+                    user.id,
+                    DEFAULT_MESSAGE_INTERVAL_SEC * 1000,
+                    { replyToMessageId: messageId },
+                  );
                 }
                 if (hasClearedReviewQueue) {
                   await sendAndSaveMessage(reviewUpToDateParams);
-                  if (AUTO_QUESTION_ENABLED) {
-                    await waitBeforeSend(
-                      channel,
-                      user.id,
-                      DEFAULT_MESSAGE_INTERVAL_SEC * 1000,
-                      { replyToMessageId: messageId },
-                    );
-                  }
+                  await waitBeforeSend(
+                    channel,
+                    user.id,
+                    DEFAULT_MESSAGE_INTERVAL_SEC * 1000,
+                    { replyToMessageId: messageId },
+                  );
                 }
-                // AUTO_QUESTION_ENABLED false: quem dispara a proxima pergunta
-                // e o Continuar, que chama esta mesma funcao em continuePractice.
-                if (!AUTO_QUESTION_ENABLED) return;
                 const sent = await handleIntensiveNextQuestion(
                   activeActivity,
                   user.id,
@@ -1358,12 +1380,12 @@ export async function handleIncomingMessage(
                 await sendAndSaveMessage(reviewUpToDateParams);
               }
 
-              if (!isIntensiveMode) {
+              if (!isIntensiveMode || !AUTO_QUESTION_ENABLED) {
                 await maybeSendActivitySuggestion({
                   activity: activeActivity,
                   userId: user.id,
                   isLastAnswerCorrect: evalStatus === "right",
-                  isIntensiveMode: Boolean(isPracticingSessionActive),
+                  isIntensiveMode: hasAutoNextQuestion,
                   channel,
                   today,
                   replyToMessageId: messageId,
@@ -1378,6 +1400,7 @@ export async function handleIncomingMessage(
         const waitingActions = await findPracticeActions(
           activeActivity,
           user.id,
+          today,
         );
         reply = waitingActions?.canContinue
           ? formatAwaitingContinue()
@@ -1430,12 +1453,6 @@ export async function handleIncomingMessage(
   }
 }
 
-function formatPracticeLimit(practiceCount: number): FormattedMessage {
-  return practiceCount >= DAILY_PRACTICE_LIMIT
-    ? formatDailyPracticeLimitReached()
-    : formatIntensiveDailyLimitReached();
-}
-
 type ContinuePracticeParams = {
   activity: Activity;
   userId: string;
@@ -1470,12 +1487,12 @@ async function handleContinueButton(
       channel,
       userId,
       activityId: activity.id,
-      message: formatPracticeLimit(practiceCount),
+      message: formatDailyPracticeLimitReached(),
       today,
     });
     return;
   }
-  const actions = await findPracticeActions(activity, userId);
+  const actions = await findPracticeActions(activity, userId, today);
   if (actions?.canContinue) await continuePractice(params);
 }
 
@@ -1513,7 +1530,7 @@ async function handleIntensiveNextQuestion(
       return true;
     }
 
-    const unanswered = await findNextUnansweredQuestion(docId, lastId);
+    const unanswered = await findNextUnansweredQuestion(activityId, lastId);
     if (unanswered) {
       await sendIntensiveQuestion(
         unanswered,
@@ -1722,6 +1739,16 @@ async function markOptionListSelection(params: {
   );
 }
 
+async function resolveNoActiveActivityReply(
+  userId: string,
+  fallback: FormattedMessage,
+): Promise<FormattedMessage> {
+  const current = await findCurrentActivityByUser(userId);
+  return current?.status === "paused"
+    ? formatActivityIsPaused(current.title)
+    : fallback;
+}
+
 async function blockAnswerLanguage(params: {
   channel: MessageChannel;
   userId: string;
@@ -1814,6 +1841,8 @@ export async function runOnboardingAndFirstActivityFlow(
     );
   }
 
+  if (!(await claimUserOnboarding(user.id))) return;
+
   const msgs = [
     formatOnboardingMsg1(),
     formatOnboardingMsg2(),
@@ -1836,14 +1865,13 @@ export async function runOnboardingAndFirstActivityFlow(
       message: msgs[i],
       today,
     });
-    if (i === 0) await markUserOnboarded(user.id);
   }
 }
 
 // "Tentar de novo" da falha de criacao: repete o ultimo pedido da modal.
 // Sem pedido guardado, responde como o comando nova atividade (abre a modal).
 async function retryActivityCreation(params: {
-  user: Pick<User, "id" | "planStatus" | "planExpiresAt">;
+  user: Pick<User, "id" | "planStatus" | "planExpiresAt" | "timezone">;
   input: IncomingMessage;
   text: string;
   today: Date;
@@ -1861,7 +1889,7 @@ async function retryActivityCreation(params: {
   });
   const outcome = await prepareActivityRetry(user);
   if (outcome?.status === "created") {
-    await createTextActivity(user.id, outcome.request, channel);
+    await createTextActivity(user.id, outcome.request, channel, today);
     return;
   }
   if (outcome?.status === "daily_limit" || outcome?.status === "already_creating") {
@@ -1890,15 +1918,14 @@ export async function startConversationIfNeeded(
   user: {
     id: string;
     onboardedAt: Date | null;
-    pendingIntent: string | null;
     phone: string | null;
+    timezone: string;
   },
   channel: MessageChannel,
 ): Promise<{ started: boolean }> {
-  if (user.pendingIntent) return { started: false };
   if (await findCurrentActivityByUser(user.id)) return { started: false };
 
-  const today = startOfDay(new Date());
+  const today = startOfUserDay(new Date(), user.timezone);
   if (!user.onboardedAt) {
     await runOnboardingAndFirstActivityFlow(user, today, channel);
   } else {

@@ -26,6 +26,7 @@ import {
   NewActivityFeedback,
   resolveActivityFeedback,
 } from "./new-activity-outcome";
+import { track } from "@/src/lib/analytics";
 
 // Ordem das abas na modal; DOMAINS segue outra ordem (simulador da home).
 const DOMAIN_TAB_ORDER: DomainId[] = [
@@ -93,18 +94,14 @@ export function NewActivityMainStep({
     if (!canSubmit) return;
     setIsSubmitting(true);
     setFeedback(null);
+    const domainKey = isPickedUnchanged && picked ? picked.domainKey : activeDomain;
     const { ok, body } = await postJson<ActivityOutcomeBody>(
       "/api/app/activities",
-      {
-        source: "text",
-        text: text.trim(),
-        level,
-        domainKey: isPickedUnchanged && picked ? picked.domainKey : activeDomain,
-        focusKeys,
-      },
+      { source: "text", text: text.trim(), level, domainKey, focusKeys },
     );
     setIsSubmitting(false);
     if (ok) {
+      track("activity_created", { source: "text", domain: domainKey });
       onCreated();
       return;
     }

@@ -3,13 +3,20 @@ import { requireAuth } from "@/src/lib/auth/current-user";
 import { UnauthorizedError } from "@/src/lib/custom-errors";
 import { getDailyReminderTimeSlots } from "@/src/core/daily-reminder-time";
 import { updateUserDailyReminder } from "@/src/repo/users.repo";
+import { isValidTimeZone } from "@/src/core/timezone";
+import { DEFAULT_TIMEZONE } from "@/src/lib/constants";
 
 const [firstSlot, ...restSlots] = getDailyReminderTimeSlots();
 
 const DailyReminderSchema = z.object({
   enabled: z.boolean(),
   time: z.enum([firstSlot, ...restSlots]),
-  timezone: z.string().trim().min(1),
+  timezone: z
+    .string()
+    .trim()
+    .transform((value) =>
+      isValidTimeZone(value) ? value : DEFAULT_TIMEZONE,
+    ),
 });
 
 export async function POST(request: Request): Promise<Response> {

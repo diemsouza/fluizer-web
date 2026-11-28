@@ -1,4 +1,4 @@
-import { SITE_URL, TRIAL_DAYS } from "@/src/lib/constants";
+import { CONTACT_PATH, SITE_URL, TRIAL_DAYS } from "@/src/lib/constants";
 import { getPricingDisplay } from "@/src/lib/pricing-display";
 import { BLOG_PATH, buildBlogPostPath } from "@/src/core/blog";
 import { listBlogPosts } from "@/src/services/blog-service";
@@ -10,7 +10,7 @@ function buildLlmsTxt(blogLinks: string): string {
 
   return `# Fluizer
 
-> Fluizer é um app brasileiro de prática diária de inglês com IA e repetição espaçada (SM-2). Você escolhe o conteúdo e recebe perguntas sobre ele ao longo do dia, no seu ritmo.
+> Fluizer é um app brasileiro de prática diária de inglês com IA e repetição espaçada (SM-2). Você escolhe o conteúdo e responde perguntas sobre ele no seu ritmo, na hora que quiser.
 
 ## Como funciona
 
@@ -32,8 +32,9 @@ Para quem estuda inglês, em qualquer curso ou por conta própria, e quer pratic
 ## Links
 
 - [Home](${SITE_URL})
-- [Termos de uso](${SITE_URL}/terms)
-- [Política de privacidade](${SITE_URL}/privacy)
+- [Termos de Uso](${SITE_URL}/terms)
+- [Política de Privacidade](${SITE_URL}/privacy)
+- [Contato](${SITE_URL}${CONTACT_PATH})
 
 ## Blog
 

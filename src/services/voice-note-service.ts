@@ -138,6 +138,18 @@ async function transcribeVoiceNote(
   }
 }
 
+// Plano vencido nao gasta Whisper: o fluxo responde o aviso de plano de qualquer
+// jeito, entao a transcricao nao teria uso.
+async function resolveVoiceTranscription(
+  voiceNote: StoredVoiceNote,
+  userId: string,
+  canTranscribe: boolean,
+): Promise<TranscribedVoiceNote> {
+  if (!canTranscribe) return untranscribedVoiceNote(null);
+  const expectedLanguage = await findExpectedAnswerLanguage(userId);
+  return transcribeVoiceNote(voiceNote, expectedLanguage);
+}
+
 async function findExpectedAnswerLanguage(
   userId: string,
 ): Promise<AnswerLanguage | null> {
@@ -164,9 +176,13 @@ export async function processVoiceNote(
   voiceNote: StoredVoiceNote,
   userId: string,
   input: IncomingMessage,
+  options: { canTranscribe: boolean },
 ): Promise<void> {
-  const expectedLanguage = await findExpectedAnswerLanguage(userId);
-  const transcribed = await transcribeVoiceNote(voiceNote, expectedLanguage);
+  const transcribed = await resolveVoiceTranscription(
+    voiceNote,
+    userId,
+    options.canTranscribe,
+  );
   const messageId = ulid();
   await createMedia({
     id: voiceNote.mediaId,

@@ -22,6 +22,7 @@ import {
   NewActivityFeedback,
   resolveActivityFeedback,
 } from "./new-activity-outcome";
+import { track } from "@/src/lib/analytics";
 
 type FileErrorCode =
   | "blocked"
@@ -29,6 +30,8 @@ type FileErrorCode =
   | "empty"
   | "unsupported"
   | "too_large"
+  | "too_long"
+  | "plan_expired"
   | "failed";
 
 type ExtractedFile = {
@@ -52,6 +55,8 @@ const FILE_ERROR_CODES: FileErrorCode[] = [
   "empty",
   "unsupported",
   "too_large",
+  "too_long",
+  "plan_expired",
 ];
 
 async function extractFile(
@@ -138,6 +143,7 @@ export function NewActivityMaterialStep({
     );
     setIsSubmitting(false);
     if (ok) {
+      track("activity_created", { source: "material" });
       onCreated();
       return;
     }

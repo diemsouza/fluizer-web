@@ -18,7 +18,7 @@ export async function generateMetadata(): Promise<Metadata> {
   const t = await getTranslations("blog.index");
   const url = `${SITE_URL}${BLOG_PATH}`;
   return {
-    title: t("title"),
+    title: { absolute: t("title") },
     description: t("description"),
     alternates: { canonical: url },
     openGraph: {

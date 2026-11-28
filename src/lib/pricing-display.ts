@@ -22,6 +22,9 @@ export function getPricingDisplay(): PricingDisplay {
       yearly / MONTHS_PER_YEAR,
       DEFAULT_CURRENCY,
     ),
-    savings: String(Math.round(monthly * MONTHS_PER_YEAR - yearly)),
+    savings: getFormattedPrice(
+      monthly * MONTHS_PER_YEAR - yearly,
+      DEFAULT_CURRENCY,
+    ),
   };
 }

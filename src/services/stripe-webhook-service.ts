@@ -1,6 +1,7 @@
 import Stripe from "stripe";
 import { stripe } from "../vendors/stripe.vendor";
 import {
+  applyPaidPlan,
   findUserById,
   updateUserCheckoutData,
   updateUserPlan,
@@ -106,10 +107,11 @@ async function sendSubscriptionConfirmed(
   });
 }
 
-// Idempotência pelo próprio valor: reenvio do mesmo invoice.paid encontra o
-// planExpiresAt já gravado e não reenvia a confirmação. A mensagem sai quando
-// o acesso pago passa a valer (não estava pro ativo e dentro do prazo);
-// renovação com acesso vigente atualiza em silêncio.
+// Idempotência pelo próprio valor, num update condicional: reenvio ou evento
+// simultâneo do mesmo invoice.paid encontra o planExpiresAt já gravado e não
+// reenvia a confirmação. A mensagem sai quando o acesso pago passa a valer
+// (não estava pro ativo e dentro do prazo); renovação com acesso vigente
+// atualiza em silêncio.
 async function applyPaidPeriodToUser(
   userId: string,
   interval: SubscriptionInterval,
@@ -121,15 +123,6 @@ async function applyPaidPeriodToUser(
   if (!user) {
     throw new Error(`[applyPaidPeriodToUser] user not found: ${userId}`);
   }
-  if (
-    user.planCode === "pro" &&
-    user.planStatus === "active" &&
-    user.planExpiresAt?.getTime() === planExpiresAt.getTime()
-  ) {
-    console.log("[applyPaidPeriodToUser] period already applied", { userId });
-    return;
-  }
-
   const hadPaidAccess =
     user.planCode === "pro" &&
     user.planStatus === "active" &&
@@ -137,11 +130,11 @@ async function applyPaidPeriodToUser(
     user.planExpiresAt.getTime() > Date.now();
   const shouldNotify = !hadPaidAccess;
 
-  await updateUserPlan(userId, {
-    planCode: "pro",
-    planStatus: "active",
-    planExpiresAt,
-  });
+  const isApplied = await applyPaidPlan(userId, planExpiresAt);
+  if (!isApplied) {
+    console.log("[applyPaidPeriodToUser] period already applied", { userId });
+    return;
+  }
   console.log("[applyPaidPeriodToUser] plan updated", {
     userId,
     planExpiresAt,
